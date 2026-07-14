@@ -1,0 +1,6 @@
+.ultrapowers/
+.claude/ultrapowers-preferences.json
+node_modules/
+.env*
+!.env.example
+.next/
