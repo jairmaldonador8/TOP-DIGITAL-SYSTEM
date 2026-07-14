@@ -22,8 +22,12 @@ export async function iniciarSesion(
   })
 
   if (error) {
-    // Mensaje genérico: no revelar si el correo existe o no.
-    return { error: 'Correo o contraseña incorrectos' }
+    if (error.code === 'invalid_credentials') {
+      // Mensaje genérico: no revelar si el correo existe o no.
+      return { error: 'Correo o contraseña incorrectos' }
+    }
+    console.error('Error inesperado al iniciar sesión:', error)
+    return { error: 'Ocurrió un error inesperado, intenta de nuevo' }
   }
 
   revalidatePath('/', 'layout')

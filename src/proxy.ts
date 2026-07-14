@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-import { destinoPorRol } from '@/lib/auth/redirect'
+import { AREA_POR_ROL, rolDesdeClaims, rolPuedeAcceder } from '@/lib/auth/redirect'
 
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -33,7 +33,7 @@ export async function proxy(request: NextRequest) {
   const { data } = await supabase.auth.getClaims()
 
   const claims = data?.claims
-  const role = claims?.user_role as string | undefined
+  const rol = rolDesdeClaims(claims)
   const path = request.nextUrl.pathname
 
   const redirigir = (destino: string) => {
@@ -52,17 +52,24 @@ export async function proxy(request: NextRequest) {
     return redirigir('/login')
   }
 
-  // Con sesión en /login: enviar a su área.
-  if (claims && path === '/login') {
-    return redirigir(destinoPorRol({ user_role: role }))
+  // Sesión autenticada sin rol válido: sesión inválida. Cerrarla y
+  // enviar a /login (evita el ping-pong /agencia ↔ /portal y el bucle
+  // autenticado-en-/login).
+  if (claims && !rol) {
+    await supabase.auth.signOut()
+    return path === '/login' ? supabaseResponse : redirigir('/login')
   }
 
-  if (path.startsWith('/agencia') && role !== 'admin') {
-    return redirigir('/portal')
-  }
+  if (rol) {
+    // Con sesión válida en /login: enviar a su área.
+    if (path === '/login') {
+      return redirigir(AREA_POR_ROL[rol])
+    }
 
-  if (path.startsWith('/portal') && role !== 'cliente') {
-    return redirigir('/agencia')
+    // Guarda de áreas: cada rol solo accede a su propia área.
+    if (!rolPuedeAcceder(rol, path)) {
+      return redirigir(AREA_POR_ROL[rol])
+    }
   }
 
   return supabaseResponse
