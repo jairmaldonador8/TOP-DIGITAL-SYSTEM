@@ -7,8 +7,8 @@ import { toast } from 'sonner'
 import {
   actualizarCliente,
   crearCliente,
-  type ResultadoAccion,
 } from '@/app/(app)/agencia/clientes/actions'
+import { Campo, describedBy } from '@/components/formularios/campo'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -21,8 +21,8 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import type { ResultadoAccion } from '@/lib/acciones'
 
 /** Datos mínimos del cliente para precargar el formulario de edición. */
 export type ClienteEditable = {
@@ -126,6 +126,7 @@ function FormularioCliente({
           placeholder="Tacos El Patrón"
           defaultValue={inicial('nombre_negocio', cliente?.nombre_negocio)}
           aria-invalid={errores.nombre_negocio ? true : undefined}
+          aria-describedby={describedBy('nombre_negocio', errores.nombre_negocio)}
           required
         />
       </Campo>
@@ -152,6 +153,7 @@ function FormularioCliente({
             placeholder="contacto@negocio.mx"
             defaultValue={inicial('email', cliente?.email)}
             aria-invalid={errores.email ? true : undefined}
+            aria-describedby={describedBy('email', errores.email)}
           />
         </Campo>
         <Campo id="telefono" etiqueta="Teléfono" error={errores.telefono}>
@@ -181,6 +183,10 @@ function FormularioCliente({
             placeholder="0"
             defaultValue={inicial('presupuesto_ads', cliente?.presupuesto_ads)}
             aria-invalid={errores.presupuesto_ads ? true : undefined}
+            aria-describedby={describedBy(
+              'presupuesto_ads',
+              errores.presupuesto_ads
+            )}
           />
         </Campo>
         <Campo
@@ -198,6 +204,10 @@ function FormularioCliente({
             placeholder="0"
             defaultValue={inicial('meta_facturacion', cliente?.meta_facturacion)}
             aria-invalid={errores.meta_facturacion ? true : undefined}
+            aria-describedby={describedBy(
+              'meta_facturacion',
+              errores.meta_facturacion
+            )}
           />
         </Campo>
       </div>
@@ -229,29 +239,5 @@ function FormularioCliente({
         </Button>
       </DialogFooter>
     </form>
-  )
-}
-
-function Campo({
-  id,
-  etiqueta,
-  error,
-  children,
-}: {
-  id: string
-  etiqueta: string
-  error?: string
-  children: React.ReactNode
-}) {
-  return (
-    <div className="flex flex-col gap-2">
-      <Label htmlFor={id}>{etiqueta}</Label>
-      {children}
-      {error ? (
-        <p id={`error-${id}`} role="alert" className="text-xs text-destructive">
-          {error}
-        </p>
-      ) : null}
-    </div>
   )
 }

@@ -4,10 +4,8 @@ import { useActionState, useCallback, useEffect, useState } from 'react'
 import { UserRoundPlusIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
-import {
-  crearUsuarioCliente,
-  type ResultadoAccion,
-} from '@/app/(app)/agencia/clientes/actions'
+import { crearUsuarioCliente } from '@/app/(app)/agencia/clientes/actions'
+import { Campo, describedBy } from '@/components/formularios/campo'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -20,7 +18,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import type { ResultadoAccion } from '@/lib/acciones'
 
 /**
  * Dialog para dar acceso al portal a una persona del cliente: crea el
@@ -93,25 +91,23 @@ function FormularioUsuario({
 
   return (
     <form action={enviar} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="usuario-nombre">Nombre</Label>
+      <Campo id="usuario-nombre" etiqueta="Nombre" error={errores.nombre}>
         <Input
           id="usuario-nombre"
           name="nombre"
           placeholder="Nombre y apellido"
           defaultValue={valores.nombre ?? ''}
           aria-invalid={errores.nombre ? true : undefined}
+          aria-describedby={describedBy('usuario-nombre', errores.nombre)}
           required
         />
-        {errores.nombre ? (
-          <p role="alert" className="text-xs text-destructive">
-            {errores.nombre}
-          </p>
-        ) : null}
-      </div>
+      </Campo>
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="usuario-email">Correo electrónico</Label>
+      <Campo
+        id="usuario-email"
+        etiqueta="Correo electrónico"
+        error={errores.email}
+      >
         <Input
           id="usuario-email"
           name="email"
@@ -120,33 +116,28 @@ function FormularioUsuario({
           placeholder="persona@negocio.mx"
           defaultValue={valores.email ?? ''}
           aria-invalid={errores.email ? true : undefined}
+          aria-describedby={describedBy('usuario-email', errores.email)}
           required
         />
-        {errores.email ? (
-          <p role="alert" className="text-xs text-destructive">
-            {errores.email}
-          </p>
-        ) : null}
-      </div>
+      </Campo>
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="usuario-password">Contraseña temporal</Label>
+      <Campo
+        id="usuario-password"
+        etiqueta="Contraseña temporal"
+        error={errores.password}
+        descripcion="Mínimo 8 caracteres."
+      >
         <Input
           id="usuario-password"
           name="password"
           type="password"
           autoComplete="new-password"
           aria-invalid={errores.password ? true : undefined}
+          aria-describedby={describedBy('usuario-password', errores.password)}
           required
           minLength={8}
         />
-        <p className="text-xs text-muted-foreground">Mínimo 8 caracteres.</p>
-        {errores.password ? (
-          <p role="alert" className="text-xs text-destructive">
-            {errores.password}
-          </p>
-        ) : null}
-      </div>
+      </Campo>
 
       {errores._form ? (
         <p role="alert" className="text-sm text-destructive">

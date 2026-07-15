@@ -32,22 +32,36 @@ type FilaCliente = {
 export default async function PaginaClientes() {
   const supabase = await createClient()
 
-  // Dos consultas en paralelo; los leads se agrupan aquí (sin N+1).
-  const [{ data: clientes }, { data: filasLeads }] = await Promise.all([
-    supabase
-      .from('clientes')
-      .select('id, nombre_negocio, contacto_nombre, estado')
-      .eq('es_agencia', false)
-      .order('created_at', { ascending: true }),
-    supabase.from('leads').select('cliente_id'),
-  ])
+  const { data: clientes, error: errorClientes } = await supabase
+    .from('clientes')
+    .select('id, nombre_negocio, contacto_nombre, estado')
+    .eq('es_agencia', false)
+    .order('created_at', { ascending: true })
 
-  const conteoLeads = new Map<string, number>()
-  for (const fila of (filasLeads ?? []) as { cliente_id: string }[]) {
-    conteoLeads.set(fila.cliente_id, (conteoLeads.get(fila.cliente_id) ?? 0) + 1)
+  if (errorClientes) {
+    console.error('Error al cargar clientes:', errorClientes)
   }
 
   const lista = (clientes ?? []) as FilaCliente[]
+
+  // Conteo exacto por cliente con head:true (count en el header): consultas
+  // en paralelo que no pueden truncarse por el max-rows de PostgREST.
+  const conteos = await Promise.all(
+    lista.map(async (cliente) => {
+      const { count, error } = await supabase
+        .from('leads')
+        .select('cliente_id', { count: 'exact', head: true })
+        .eq('cliente_id', cliente.id)
+      if (error) {
+        console.error(
+          `Error al contar leads del cliente ${cliente.id}:`,
+          error
+        )
+      }
+      return [cliente.id, count ?? 0] as const
+    })
+  )
+  const conteoLeads = new Map(conteos)
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
@@ -63,7 +77,14 @@ export default async function PaginaClientes() {
         <ClienteFormDialog />
       </header>
 
-      {lista.length === 0 ? (
+      {errorClientes ? (
+        <Card className="items-center py-10 text-center">
+          <p className="max-w-sm text-sm text-destructive" role="alert">
+            No se pudieron cargar los clientes. Recarga la página para
+            intentarlo de nuevo.
+          </p>
+        </Card>
+      ) : lista.length === 0 ? (
         <Card className="items-center gap-4 py-14 text-center">
           <span className="flex size-12 items-center justify-center rounded-full bg-sidebar">
             <UsersRoundIcon aria-hidden className="size-5 text-accent-lima" />

@@ -57,7 +57,7 @@ export default async function PaginaCliente({
   const { id } = await params
   const supabase = await createClient()
 
-  const { data } = await supabase
+  const { data, error: errorCliente } = await supabase
     .from('clientes')
     .select(
       'id, nombre_negocio, contacto_nombre, email, telefono, presupuesto_ads, meta_facturacion, estado, es_agencia, notas, created_at'
@@ -65,15 +65,24 @@ export default async function PaginaCliente({
     .eq('id', id)
     .maybeSingle()
 
+  // Un id que no es uuid también produce error (22P02): eso sí es un 404.
+  if (errorCliente && errorCliente.code !== '22P02') {
+    console.error('Error al cargar cliente:', errorCliente)
+  }
+
   const cliente = data as Cliente | null
   // La agencia misma no se administra como cliente.
   if (!cliente || cliente.es_agencia) notFound()
 
-  const { data: usuarios } = await supabase
+  const { data: usuarios, error: errorUsuarios } = await supabase
     .from('usuarios')
     .select('id, nombre, rol, created_at')
     .eq('cliente_id', cliente.id)
     .order('created_at', { ascending: true })
+
+  if (errorUsuarios) {
+    console.error('Error al cargar usuarios del cliente:', errorUsuarios)
+  }
 
   const listaUsuarios = (usuarios ?? []) as FilaUsuario[]
 
@@ -174,7 +183,15 @@ export default async function PaginaCliente({
               </CardAction>
             </CardHeader>
             <CardContent>
-              {listaUsuarios.length === 0 ? (
+              {errorUsuarios ? (
+                <p
+                  role="alert"
+                  className="py-6 text-center text-sm text-destructive"
+                >
+                  No se pudieron cargar los usuarios. Recarga la página para
+                  intentarlo de nuevo.
+                </p>
+              ) : listaUsuarios.length === 0 ? (
                 <p className="py-6 text-center text-sm text-muted-foreground">
                   Este cliente todavía no tiene usuarios. Agrega el primero
                   para darle acceso al portal.

@@ -2,44 +2,18 @@
 
 import { revalidatePath } from 'next/cache'
 
-import { usuarioActual } from '@/lib/auth/usuario-actual'
+import {
+  esAdmin,
+  NO_AUTORIZADO,
+  valoresDe,
+  type ResultadoAccion,
+} from '@/lib/acciones'
 import {
   validarCliente,
   validarUsuarioCliente,
 } from '@/lib/clientes/validacion'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
-
-/**
- * Resultado estándar de las acciones de formulario: en caso de error se
- * devuelven los valores capturados para repoblar el formulario (React 19
- * resetea los <form> después de cada action).
- */
-export type ResultadoAccion =
-  | { ok: true; email?: string }
-  | { ok: false; errores: Record<string, string>; valores: Record<string, string> }
-  | null
-
-const NO_AUTORIZADO: ResultadoAccion = {
-  ok: false,
-  errores: { _form: 'No tienes permiso para realizar esta acción' },
-  valores: {},
-}
-
-/** Los Server Actions nunca confían en la UI: re-verifican el rol admin. */
-async function esAdmin(): Promise<boolean> {
-  const actual = await usuarioActual()
-  return actual.rol === 'admin'
-}
-
-function valoresDe(formData: FormData, campos: string[]): Record<string, string> {
-  const valores: Record<string, string> = {}
-  for (const campo of campos) {
-    const valor = formData.get(campo)
-    if (typeof valor === 'string') valores[campo] = valor
-  }
-  return valores
-}
 
 const CAMPOS_CLIENTE = [
   'nombre_negocio',
@@ -97,6 +71,8 @@ export async function actualizarCliente(
     .from('clientes')
     .update(resultado.datos)
     .eq('id', clienteId)
+    // Guarda de datos, no solo de UI: la agencia no se edita como cliente.
+    .eq('es_agencia', false)
     .select('id')
     .maybeSingle()
 
@@ -136,6 +112,8 @@ export async function cambiarEstadoCliente(
     .from('clientes')
     .update({ estado })
     .eq('id', clienteId)
+    // Guarda de datos, no solo de UI: la agencia nunca se desactiva así.
+    .eq('es_agencia', false)
     .select('id')
     .maybeSingle()
 
@@ -223,7 +201,15 @@ export async function crearUsuarioCliente(
   if (errorFila) {
     console.error('Error al insertar fila de usuario, limpiando auth:', errorFila)
     // Limpieza: sin fila en usuarios el login quedaría huérfano.
-    await admin.auth.admin.deleteUser(creado.user.id)
+    const { error: errorLimpieza } = await admin.auth.admin.deleteUser(
+      creado.user.id
+    )
+    if (errorLimpieza) {
+      console.error(
+        `Usuario de auth huérfano ${creado.user.id}: no se pudo eliminar:`,
+        errorLimpieza
+      )
+    }
     return {
       ok: false,
       errores: { _form: 'No se pudo crear el usuario, intenta de nuevo' },
