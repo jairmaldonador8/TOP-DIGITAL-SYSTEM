@@ -2,23 +2,15 @@ import type { Metadata } from 'next'
 import { ChartColumn } from 'lucide-react'
 
 import { Card, CardContent } from '@/components/ui/card'
-import { createClient } from '@/lib/supabase/server'
+import { usuarioActual } from '@/lib/auth/usuario-actual'
 
 export const metadata: Metadata = {
   title: 'Dashboard',
 }
 
 export default async function PaginaAgencia() {
-  const supabase = await createClient()
-  const { data } = await supabase.auth.getClaims()
-
-  const { data: usuario } = await supabase
-    .from('usuarios')
-    .select('nombre')
-    .eq('user_id', data?.claims?.sub ?? '')
-    .maybeSingle()
-
-  const nombre: string = usuario?.nombre ?? 'Equipo Top Digital'
+  const actual = await usuarioActual()
+  const nombre = actual.nombre ?? 'Equipo Top Digital'
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">

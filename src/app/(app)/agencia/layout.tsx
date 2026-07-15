@@ -3,8 +3,8 @@ import { redirect } from 'next/navigation'
 
 import { Sidebar, type ElementoNav } from '@/components/layout/sidebar'
 import { Topbar } from '@/components/layout/topbar'
-import { destinoPorRol, rolDesdeClaims } from '@/lib/auth/redirect'
-import { createClient } from '@/lib/supabase/server'
+import { destinoPorRol } from '@/lib/auth/redirect'
+import { usuarioActual } from '@/lib/auth/usuario-actual'
 
 export const metadata: Metadata = {
   title: {
@@ -28,23 +28,14 @@ export default async function LayoutAgencia({
 }: {
   children: React.ReactNode
 }) {
-  const supabase = await createClient()
-
   // Defensa en profundidad: el proxy ya protege /agencia, pero el layout
   // vuelve a verificar sesión y rol — el proxy no es frontera de seguridad.
-  const { data } = await supabase.auth.getClaims()
-  const claims = data?.claims
-  if (!claims || rolDesdeClaims(claims) !== 'admin') {
-    redirect(destinoPorRol(claims))
+  const actual = await usuarioActual()
+  if (actual.rol !== 'admin') {
+    redirect(destinoPorRol(actual.claims ?? undefined))
   }
 
-  const { data: usuario } = await supabase
-    .from('usuarios')
-    .select('nombre')
-    .eq('user_id', claims.sub)
-    .maybeSingle()
-
-  const nombre: string = usuario?.nombre ?? 'Equipo Top Digital'
+  const nombre = actual.nombre ?? 'Equipo Top Digital'
 
   return (
     <div className="min-h-svh bg-background">

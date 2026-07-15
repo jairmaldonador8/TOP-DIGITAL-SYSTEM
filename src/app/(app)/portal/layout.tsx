@@ -3,8 +3,8 @@ import { redirect } from 'next/navigation'
 
 import { Sidebar, type ElementoNav } from '@/components/layout/sidebar'
 import { Topbar } from '@/components/layout/topbar'
-import { destinoPorRol, rolDesdeClaims } from '@/lib/auth/redirect'
-import { createClient } from '@/lib/supabase/server'
+import { destinoPorRol } from '@/lib/auth/redirect'
+import { usuarioActual } from '@/lib/auth/usuario-actual'
 
 export const metadata: Metadata = {
   title: {
@@ -20,42 +20,20 @@ const ELEMENTOS_PORTAL: ElementoNav[] = [
   { icono: 'chat', label: 'Chat', href: '/portal/chat' },
 ]
 
-/** Fila de usuarios con el join al negocio del cliente. */
-type FilaUsuarioPortal = {
-  nombre: string
-  clientes:
-    | { nombre_negocio: string }
-    | { nombre_negocio: string }[]
-    | null
-}
-
 export default async function LayoutPortal({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const supabase = await createClient()
-
   // Defensa en profundidad: el proxy ya protege /portal, pero el layout
   // vuelve a verificar sesión y rol — el proxy no es frontera de seguridad.
-  const { data } = await supabase.auth.getClaims()
-  const claims = data?.claims
-  if (!claims || rolDesdeClaims(claims) !== 'cliente') {
-    redirect(destinoPorRol(claims))
+  const actual = await usuarioActual()
+  if (actual.rol !== 'cliente') {
+    redirect(destinoPorRol(actual.claims ?? undefined))
   }
 
-  const { data: fila } = await supabase
-    .from('usuarios')
-    .select('nombre, clientes ( nombre_negocio )')
-    .eq('user_id', claims.sub)
-    .maybeSingle()
-
-  const usuario = fila as FilaUsuarioPortal | null
-  const nombre = usuario?.nombre ?? 'Cliente'
-  const relacion = usuario?.clientes
-  const negocio = Array.isArray(relacion)
-    ? relacion[0]?.nombre_negocio
-    : relacion?.nombre_negocio
+  const nombre = actual.nombre ?? 'Cliente'
+  const negocio = actual.negocio
 
   return (
     <div className="min-h-svh bg-background">

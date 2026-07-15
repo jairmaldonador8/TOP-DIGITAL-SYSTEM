@@ -21,9 +21,19 @@ type TopbarProps = {
   items: ElementoNav[]
   usuarioNombre: string
   negocioNombre?: string
+  /**
+   * Acciones del lado derecho (p. ej. la campanita de notificaciones como
+   * server component). Si se omite, se muestra la campana estática.
+   */
+  acciones?: React.ReactNode
 }
 
-export function Topbar({ items, usuarioNombre, negocioNombre }: TopbarProps) {
+export function Topbar({
+  items,
+  usuarioNombre,
+  negocioNombre,
+  acciones,
+}: TopbarProps) {
   const pathname = usePathname()
 
   const titulo = elementoActivo(items, pathname)?.label ?? 'Panel'
@@ -65,11 +75,13 @@ export function Topbar({ items, usuarioNombre, negocioNombre }: TopbarProps) {
         </p>
       </div>
 
-      {/* Campana de notificaciones: marcador estático; el contador se
-          conecta en una tarea posterior. */}
-      <Button variant="ghost" size="icon" aria-label="Notificaciones">
-        <Bell aria-hidden />
-      </Button>
+      {/* Campana de notificaciones: marcador estático hasta que el layout
+          pase la campanita real vía `acciones` (tarea posterior). */}
+      {acciones ?? (
+        <Button variant="ghost" size="icon" aria-label="Notificaciones">
+          <Bell aria-hidden />
+        </Button>
+      )}
     </header>
   )
 }
