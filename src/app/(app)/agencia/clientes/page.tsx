@@ -1,0 +1,126 @@
+import type { Metadata } from 'next'
+import Link from 'next/link'
+import { ChevronRightIcon, UsersRoundIcon } from 'lucide-react'
+
+import { ClienteFormDialog } from '@/components/clientes/cliente-form'
+import {
+  EstadoClienteBadge,
+  type EstadoCliente,
+} from '@/components/clientes/estado-badge'
+import { Card } from '@/components/ui/card'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { createClient } from '@/lib/supabase/server'
+
+export const metadata: Metadata = {
+  title: 'Clientes',
+}
+
+type FilaCliente = {
+  id: string
+  nombre_negocio: string
+  contacto_nombre: string | null
+  estado: EstadoCliente
+}
+
+export default async function PaginaClientes() {
+  const supabase = await createClient()
+
+  // Dos consultas en paralelo; los leads se agrupan aquí (sin N+1).
+  const [{ data: clientes }, { data: filasLeads }] = await Promise.all([
+    supabase
+      .from('clientes')
+      .select('id, nombre_negocio, contacto_nombre, estado')
+      .eq('es_agencia', false)
+      .order('created_at', { ascending: true }),
+    supabase.from('leads').select('cliente_id'),
+  ])
+
+  const conteoLeads = new Map<string, number>()
+  for (const fila of (filasLeads ?? []) as { cliente_id: string }[]) {
+    conteoLeads.set(fila.cliente_id, (conteoLeads.get(fila.cliente_id) ?? 0) + 1)
+  }
+
+  const lista = (clientes ?? []) as FilaCliente[]
+
+  return (
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            Clientes
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Los negocios que administra Top Digital.
+          </p>
+        </div>
+        <ClienteFormDialog />
+      </header>
+
+      {lista.length === 0 ? (
+        <Card className="items-center gap-4 py-14 text-center">
+          <span className="flex size-12 items-center justify-center rounded-full bg-sidebar">
+            <UsersRoundIcon aria-hidden className="size-5 text-accent-lima" />
+          </span>
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">
+              Aún no hay clientes
+            </h2>
+            <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
+              Crea el primer cliente con el botón “Nuevo cliente” para
+              empezar a registrar sus leads y campañas.
+            </p>
+          </div>
+        </Card>
+      ) : (
+        <Card className="py-0">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="px-4">Negocio</TableHead>
+                <TableHead className="px-4">Contacto</TableHead>
+                <TableHead className="px-4">Estado</TableHead>
+                <TableHead className="px-4 text-right">Leads</TableHead>
+                <TableHead className="w-10 px-4">
+                  <span className="sr-only">Abrir perfil</span>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {lista.map((cliente) => (
+                <TableRow key={cliente.id} className="relative">
+                  <TableCell className="px-4 py-3 font-medium">
+                    <Link
+                      href={`/agencia/clientes/${cliente.id}`}
+                      className="after:absolute after:inset-0 hover:underline"
+                    >
+                      {cliente.nombre_negocio}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-muted-foreground">
+                    {cliente.contacto_nombre ?? '—'}
+                  </TableCell>
+                  <TableCell className="px-4 py-3">
+                    <EstadoClienteBadge estado={cliente.estado} />
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-right tabular-nums">
+                    {conteoLeads.get(cliente.id) ?? 0}
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-muted-foreground">
+                    <ChevronRightIcon aria-hidden className="size-4" />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
+    </div>
+  )
+}
