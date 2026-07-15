@@ -1,0 +1,80 @@
+'use client'
+
+import * as React from 'react'
+import { usePathname } from 'next/navigation'
+import { Bell, Menu } from 'lucide-react'
+
+import {
+  elementoActivo,
+  Sidebar,
+  type ElementoNav,
+} from '@/components/layout/sidebar'
+import { Button } from '@/components/ui/button'
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet'
+
+type TopbarProps = {
+  items: ElementoNav[]
+  usuarioNombre: string
+  negocioNombre?: string
+}
+
+export function Topbar({ items, usuarioNombre, negocioNombre }: TopbarProps) {
+  const pathname = usePathname()
+  const [menuAbierto, setMenuAbierto] = React.useState(false)
+
+  // Cerrar el menú móvil al navegar a otra sección.
+  React.useEffect(() => {
+    setMenuAbierto(false)
+  }, [pathname])
+
+  const titulo = elementoActivo(items, pathname)?.label ?? 'Panel'
+
+  return (
+    <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-3 border-b border-border/70 bg-background/85 px-4 backdrop-blur-md lg:px-8">
+      {/* Menú móvil: el sidebar se colapsa a un sheet lateral */}
+      <Sheet open={menuAbierto} onOpenChange={setMenuAbierto}>
+        <SheetTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="icon"
+              className="-ml-1 lg:hidden"
+              aria-label="Abrir menú de navegación"
+            />
+          }
+        >
+          <Menu aria-hidden />
+        </SheetTrigger>
+        <SheetContent
+          side="left"
+          showCloseButton={false}
+          className="w-72 max-w-[85vw] gap-0 border-0 bg-sidebar p-0 sm:max-w-[85vw]"
+        >
+          <SheetTitle className="sr-only">Menú de navegación</SheetTitle>
+          <Sidebar
+            items={items}
+            usuarioNombre={usuarioNombre}
+            negocioNombre={negocioNombre}
+          />
+        </SheetContent>
+      </Sheet>
+
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-base font-semibold tracking-tight text-foreground">
+          {titulo}
+        </p>
+      </div>
+
+      {/* Campana de notificaciones: marcador estático; el contador se
+          conecta en una tarea posterior. */}
+      <Button variant="ghost" size="icon" aria-label="Notificaciones">
+        <Bell aria-hidden />
+      </Button>
+    </header>
+  )
+}

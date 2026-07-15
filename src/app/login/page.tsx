@@ -21,9 +21,9 @@ export default function PaginaLogin() {
     <main className="flex min-h-svh items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-semibold tracking-tight">
+          <h1 className="font-heading text-2xl leading-snug font-semibold tracking-tight">
             TOP DIGITAL
-          </CardTitle>
+          </h1>
           <CardDescription>
             Ingresa tus datos para acceder al sistema
           </CardDescription>
@@ -38,6 +38,7 @@ export default function PaginaLogin() {
                 type="email"
                 autoComplete="email"
                 placeholder="nombre@empresa.com"
+                aria-describedby={estado?.error ? 'error-login' : undefined}
                 required
               />
             </div>
@@ -48,11 +49,12 @@ export default function PaginaLogin() {
                 name="password"
                 type="password"
                 autoComplete="current-password"
+                aria-describedby={estado?.error ? 'error-login' : undefined}
                 required
               />
             </div>
             {estado?.error ? (
-              <p role="alert" className="text-sm text-destructive">
+              <p id="error-login" role="alert" className="text-sm text-destructive">
                 {estado.error}
               </p>
             ) : null}

@@ -56,7 +56,9 @@ export async function proxy(request: NextRequest) {
   // enviar a /login (evita el ping-pong /agencia ↔ /portal y el bucle
   // autenticado-en-/login).
   if (claims && !rol) {
-    await supabase.auth.signOut()
+    // scope 'local': invalida solo la sesión de este navegador; no
+    // cierra las sesiones del usuario en otros dispositivos.
+    await supabase.auth.signOut({ scope: 'local' })
     return path === '/login' ? supabaseResponse : redirigir('/login')
   }
 
@@ -83,6 +85,10 @@ export const config = {
      * - _next/image (optimización de imágenes)
      * - favicon.ico
      * - imágenes (svg, png, jpg, jpeg, gif, webp)
+     *
+     * NOTA: las rutas /api NO están excluidas todavía; si se agregan
+     * route handlers (p. ej. webhooks públicos) habrá que ajustar este
+     * matcher o manejarlos explícitamente dentro del proxy.
      */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
