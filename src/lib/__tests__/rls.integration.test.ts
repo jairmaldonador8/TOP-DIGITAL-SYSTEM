@@ -29,6 +29,7 @@ const ADMIN_PASSWORD = 'TopDigital2026!'
 
 // Marcadores unicos para poder limpiar de forma determinista en afterAll
 const MARKER_LEAD_CROSS_TENANT = 'RLS-TEST cross-tenant lead (no debe existir)'
+const MARKER_LEAD_AGENCIA = 'RLS-TEST lead senuelo de la agencia'
 const MARKER_SEGUIMIENTO_NOTA = 'RLS-TEST seguimiento original'
 const MARKER_SEGUIMIENTO_HACK = 'RLS-TEST intento de mutacion'
 
@@ -50,6 +51,7 @@ let svc: SupabaseClient // SOLO verificacion/cleanup: secret key, bypasea RLS
 
 let demoClienteId: string // cliente_id del claim JWT de demo
 let agenciaClienteId: string // id del cliente es_agencia (el "otro" tenant)
+let agenciaLeadId: string // lead senuelo del otro tenant: demo NUNCA debe verlo
 
 beforeAll(async () => {
   if (!SUPABASE_URL || !PUBLISHABLE_KEY || !SECRET_KEY) {
@@ -104,28 +106,53 @@ beforeAll(async () => {
   if (agenciaClienteId === demoClienteId) {
     throw new Error('Precondicion rota: el cliente_id de demo no debe ser el de la agencia')
   }
+
+  // Lead senuelo en el OTRO tenant (secret key, bypasea RLS): hace falsificable el
+  // aislamiento de lectura — si la politica SELECT de leads regresara a USING(true),
+  // demo veria este lead y el test (a) fallaria.
+  const { data: senuelo, error: senueloError } = await svc
+    .from('leads')
+    .insert({ cliente_id: agenciaClienteId, nombre: MARKER_LEAD_AGENCIA, fuente: 'organico' })
+    .select('id')
+    .single()
+  if (senueloError || !senuelo) {
+    throw new Error(`No se pudo insertar el lead senuelo de la agencia: ${senueloError?.message}`)
+  }
+  agenciaLeadId = senuelo.id
 }, 30_000)
 
 afterAll(async () => {
   // Cleanup SOLO con el cliente de servicio (secret key), para que el test sea re-ejecutable
   if (svc) {
     await svc.from('seguimientos').delete().in('nota', [MARKER_SEGUIMIENTO_NOTA, MARKER_SEGUIMIENTO_HACK])
-    // Defensivo: el lead cross-tenant de (c) no deberia existir, pero se intenta borrar igual
-    await svc.from('leads').delete().eq('nombre', MARKER_LEAD_CROSS_TENANT)
+    // Senuelo de la agencia + defensivo: el lead cross-tenant de (c) no deberia existir
+    await svc.from('leads').delete().in('nombre', [MARKER_LEAD_CROSS_TENANT, MARKER_LEAD_AGENCIA])
   }
   await demo?.auth.signOut()
   await admin?.auth.signOut()
 }, 30_000)
 
 describe('RLS aislamiento multi-tenant', () => {
-  it('(a) demo lee leads: exactamente 5 y todos de su cliente_id', async () => {
+  it('(a) demo lee leads: exactamente los de su tenant, y NO ve el senuelo de la agencia', async () => {
+    // Conjunto esperado derivado en runtime (secret key, bypasea RLS): robusto a seeds futuros
+    const { data: expected, error: expectedError } = await svc
+      .from('leads')
+      .select('id')
+      .eq('cliente_id', demoClienteId)
+    expect(expectedError).toBeNull()
+    expect(expected!.length).toBeGreaterThanOrEqual(1)
+    const expectedIds = expected!.map((r) => r.id).sort()
+
     const { data, error } = await demo.from('leads').select('id, cliente_id')
     expect(error).toBeNull()
     expect(data).not.toBeNull()
-    expect(data!.length).toBe(5)
+    // Igualdad de conjuntos: ni una fila menos (RLS no recorta de mas) ni una de mas (no hay fuga)
+    expect(data!.map((r) => r.id).sort()).toEqual(expectedIds)
     for (const row of data!) {
       expect(row.cliente_id).toBe(demoClienteId)
     }
+    // Detector de fuga explicito: el lead senuelo del otro tenant NO aparece
+    expect(data!.some((r) => r.id === agenciaLeadId)).toBe(false)
   })
 
   it('(b) CRITICO: demo NO ve campania_finanzas (0 filas, sin error)', async () => {
@@ -167,8 +194,9 @@ describe('RLS aislamiento multi-tenant', () => {
       .from('leads')
       .update({ cliente_id: agenciaClienteId })
       .eq('id', leadId)
-    // UPDATE sobre columna sin grant => error de permisos
+    // UPDATE sobre columna sin grant => 42501 permission denied
     expect(updError).not.toBeNull()
+    expect(updError!.code).toBe('42501')
 
     // VERIFICACION (secret key): el cliente_id sigue intacto
     const { data: after, error: afterError } = await svc
@@ -180,21 +208,39 @@ describe('RLS aislamiento multi-tenant', () => {
     expect(after!.cliente_id).toBe(demoClienteId)
   })
 
-  it('(e) admin ve todos los leads (>= 5, incluye los de Tacos) y las 2 filas de finanzas', async () => {
+  it('(e) admin ve TODOS los leads (ambos tenants, incluye el senuelo) y todas las finanzas', async () => {
+    // Universo esperado derivado en runtime (secret key): robusto a seeds futuros
+    const { data: allLeads, error: allLeadsError } = await svc.from('leads').select('id')
+    expect(allLeadsError).toBeNull()
+    const allLeadIds = allLeads!.map((r) => r.id).sort()
+
     const { data: leads, error: leadsError } = await admin.from('leads').select('id, cliente_id')
     expect(leadsError).toBeNull()
-    expect(leads!.length).toBeGreaterThanOrEqual(5)
-    const tacosLeads = leads!.filter((l) => l.cliente_id === demoClienteId)
-    expect(tacosLeads.length).toBe(5)
+    // Igualdad de conjuntos: admin ve exactamente lo mismo que el bypass de RLS
+    expect(leads!.map((r) => r.id).sort()).toEqual(allLeadIds)
+    // Cross-tenant explicito: el senuelo de la agencia y los leads de Tacos estan presentes
+    expect(leads!.some((l) => l.id === agenciaLeadId)).toBe(true)
+    expect(leads!.some((l) => l.cliente_id === demoClienteId)).toBe(true)
+
+    const { data: allFinanzas, error: allFinanzasError } = await svc
+      .from('campania_finanzas')
+      .select('campania_id')
+    expect(allFinanzasError).toBeNull()
+    expect(allFinanzas!.length).toBeGreaterThanOrEqual(1)
+    const allFinanzasIds = allFinanzas!.map((r) => r.campania_id).sort()
 
     const { data: finanzas, error: finanzasError } = await admin
       .from('campania_finanzas')
-      .select('campania_id, cliente_id, gasto')
+      .select('campania_id')
     expect(finanzasError).toBeNull()
-    expect(finanzas!.length).toBe(2)
-    for (const fila of finanzas!) {
-      expect(fila.cliente_id).toBe(demoClienteId)
-    }
+    expect(finanzas!.map((r) => r.campania_id).sort()).toEqual(allFinanzasIds)
+
+    // admin tambien ve todos los clientes (conjunto derivado en runtime)
+    const { data: allClientes, error: allClientesError } = await svc.from('clientes').select('id')
+    expect(allClientesError).toBeNull()
+    const { data: clientes, error: clientesError } = await admin.from('clientes').select('id')
+    expect(clientesError).toBeNull()
+    expect(clientes!.map((r) => r.id).sort()).toEqual(allClientes!.map((r) => r.id).sort())
   })
 
   it('(f) demo lee clientes: solo su propia fila', async () => {
@@ -221,16 +267,15 @@ describe('RLS aislamiento multi-tenant', () => {
     expect(insError).toBeNull()
     expect(seg!.nota).toBe(MARKER_SEGUIMIENTO_NOTA)
 
-    // Intento de mutacion: sin politica de UPDATE, RLS filtra 0 filas (sin error)
+    // Intento de mutacion: sin politica de UPDATE, RLS filtra 0 filas (sin error),
+    // o bien un revoke futuro produciria error. Cualquiera de las dos = denegado.
     const { data: updData, error: updError } = await demo
       .from('seguimientos')
       .update({ nota: MARKER_SEGUIMIENTO_HACK })
       .eq('id', seg!.id)
       .select('id')
-    if (updError === null) {
-      // Denegacion silenciosa: 0 filas afectadas
-      expect(updData).toEqual([])
-    }
+    const denegado = updError !== null || (updData ?? []).length === 0
+    expect(denegado).toBe(true)
 
     // VERIFICACION (secret key): la nota sigue siendo la original
     const { data: after, error: afterError } = await svc
