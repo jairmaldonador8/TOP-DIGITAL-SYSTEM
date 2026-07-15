@@ -25,19 +25,14 @@ type TopbarProps = {
 
 export function Topbar({ items, usuarioNombre, negocioNombre }: TopbarProps) {
   const pathname = usePathname()
-  const [menuAbierto, setMenuAbierto] = React.useState(false)
-
-  // Cerrar el menú móvil al navegar a otra sección.
-  React.useEffect(() => {
-    setMenuAbierto(false)
-  }, [pathname])
 
   const titulo = elementoActivo(items, pathname)?.label ?? 'Panel'
 
   return (
     <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-3 border-b border-border/70 bg-background/85 px-4 backdrop-blur-md lg:px-8">
-      {/* Menú móvil: el sidebar se colapsa a un sheet lateral */}
-      <Sheet open={menuAbierto} onOpenChange={setMenuAbierto}>
+      {/* Menú móvil: el sidebar se colapsa a un sheet lateral. La key por
+          pathname desmonta (y cierra) el sheet al navegar a otra sección. */}
+      <Sheet key={pathname}>
         <SheetTrigger
           render={
             <Button

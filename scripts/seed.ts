@@ -1,7 +1,7 @@
 // Seed idempotente: agencia + admin + cliente demo con datos de ejemplo.
 // Uso: npm run seed  (usa SUPABASE_SECRET_KEY, nunca exponer en cliente)
 import { config } from "dotenv";
-import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
+import { createClient, type User } from "@supabase/supabase-js";
 
 config({ path: ".env.local" });
 
