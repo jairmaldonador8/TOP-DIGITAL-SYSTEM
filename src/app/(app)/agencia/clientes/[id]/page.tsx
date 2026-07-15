@@ -205,7 +205,7 @@ export default async function PaginaCliente({
                     >
                       <span
                         aria-hidden
-                        className="flex size-8 shrink-0 items-center justify-center rounded-full bg-sidebar text-xs font-semibold text-accent-lima"
+                        className="bg-marca flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
                       >
                         {iniciales(usuario.nombre)}
                       </span>

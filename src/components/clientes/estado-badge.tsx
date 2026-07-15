@@ -3,9 +3,8 @@ import { cn } from '@/lib/utils'
 export type EstadoCliente = 'activo' | 'pausado' | 'inactivo'
 
 const ESTILOS: Record<EstadoCliente, string> = {
-  activo:
-    'bg-accent-lima/25 text-lime-800 dark:bg-accent-lima/15 dark:text-accent-lima',
-  pausado: 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
+  activo: 'bg-marca text-white',
+  pausado: 'bg-amber-500/15 text-amber-400',
   inactivo: 'bg-muted text-muted-foreground',
 }
 

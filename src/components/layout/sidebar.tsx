@@ -74,7 +74,7 @@ export function elementoActivo(
   }, null)
 }
 
-function iniciales(nombre: string): string {
+export function iniciales(nombre: string): string {
   const letras = nombre
     .trim()
     .split(/\s+/)
@@ -98,9 +98,11 @@ export function Sidebar({ items, usuarioNombre, negocioNombre }: SidebarProps) {
         >
           <span
             aria-hidden
-            className="size-2.5 rounded-[4px] bg-accent-lima ring-4 ring-accent-lima/20"
-          />
-          <span className="text-sm font-bold tracking-[0.28em] text-white">
+            className="bg-marca flex size-7 items-center justify-center rounded-lg text-xs font-extrabold text-white"
+          >
+            T
+          </span>
+          <span className="text-sm font-bold tracking-[0.22em] text-white">
             TOP&nbsp;DIGITAL
           </span>
         </Link>
@@ -121,26 +123,18 @@ export function Sidebar({ items, usuarioNombre, negocioNombre }: SidebarProps) {
                   href={item.href}
                   aria-current={esActivo ? 'page' : undefined}
                   className={cn(
-                    'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-sidebar-ring/60',
+                    'group relative flex items-center gap-3 rounded-full px-4 py-2 text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-sidebar-ring/60',
                     esActivo
-                      ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                      ? 'bg-marca font-semibold text-white'
                       : 'hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'
                   )}
                 >
-                  {/* Barra de acento del elemento activo, pegada al borde */}
-                  <span
-                    aria-hidden
-                    className={cn(
-                      'absolute top-1/2 -left-3 h-4 w-[3px] -translate-y-1/2 rounded-r-full bg-accent-lima transition-opacity',
-                      esActivo ? 'opacity-100' : 'opacity-0'
-                    )}
-                  />
                   <Icono
                     aria-hidden
                     className={cn(
                       'size-4.5 shrink-0 transition-colors',
                       esActivo
-                        ? 'text-accent-lima'
+                        ? 'text-white'
                         : 'text-sidebar-foreground group-hover:text-sidebar-accent-foreground'
                     )}
                   />
@@ -156,11 +150,10 @@ export function Sidebar({ items, usuarioNombre, negocioNombre }: SidebarProps) {
       <div className="shrink-0 border-t border-sidebar-border p-3">
         <DropdownMenu>
           <DropdownMenuTrigger className="flex w-full items-center gap-3 rounded-lg p-2 text-left outline-none transition-colors hover:bg-sidebar-accent/60 focus-visible:ring-2 focus-visible:ring-sidebar-ring/60 aria-expanded:bg-sidebar-accent">
-            <span
-              aria-hidden
-              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent-lima text-sm font-semibold text-sidebar-primary-foreground"
-            >
-              {iniciales(usuarioNombre)}
+            <span aria-hidden className="bg-marca shrink-0 rounded-full p-[2px]">
+              <span className="flex size-8 items-center justify-center rounded-full bg-sidebar text-xs font-bold text-white">
+                {iniciales(usuarioNombre)}
+              </span>
             </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-medium text-white">

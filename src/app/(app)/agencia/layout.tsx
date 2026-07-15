@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 
-import { Sidebar, type ElementoNav } from '@/components/layout/sidebar'
+import type { ElementoNav } from '@/components/layout/sidebar'
 import { Topbar } from '@/components/layout/topbar'
 import { destinoPorRol } from '@/lib/auth/redirect'
 import { usuarioActual } from '@/lib/auth/usuario-actual'
@@ -38,14 +38,9 @@ export default async function LayoutAgencia({
   const nombre = actual.nombre ?? 'Equipo Top Digital'
 
   return (
-    <div className="min-h-svh bg-background">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 lg:block">
-        <Sidebar items={ELEMENTOS_AGENCIA} usuarioNombre={nombre} />
-      </aside>
-      <div className="flex min-h-svh flex-col lg:pl-64">
-        <Topbar items={ELEMENTOS_AGENCIA} usuarioNombre={nombre} />
-        <main className="flex-1 px-4 py-6 lg:px-8 lg:py-8">{children}</main>
-      </div>
+    <div className="flex min-h-svh flex-col bg-background">
+      <Topbar items={ELEMENTOS_AGENCIA} usuarioNombre={nombre} />
+      <main className="flex-1 px-4 py-6 lg:px-8 lg:py-8">{children}</main>
     </div>
   )
 }
