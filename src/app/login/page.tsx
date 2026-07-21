@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 
 import { iniciarSesion } from "./actions";
 import { RegistroDialog } from "@/components/inicio/registro-dialog";
@@ -16,6 +17,7 @@ import { Label } from "@/components/ui/label";
 
 export default function PaginaLogin() {
   const [estado, accion, pendiente] = useActionState(iniciarSesion, null);
+  const [verPassword, setVerPassword] = useState(false);
 
   return (
     <main className="relative flex min-h-svh items-center justify-center overflow-hidden bg-background p-4">
@@ -65,14 +67,31 @@ export default function PaginaLogin() {
               </div>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="password">Contraseña</Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  aria-describedby={estado?.error ? "error-login" : undefined}
-                  required
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    name="password"
+                    type={verPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    aria-describedby={estado?.error ? "error-login" : undefined}
+                    required
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setVerPassword((v) => !v)}
+                    aria-label={
+                      verPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+                    }
+                    className="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    {verPassword ? (
+                      <EyeOff className="size-4" />
+                    ) : (
+                      <Eye className="size-4" />
+                    )}
+                  </button>
+                </div>
               </div>
               {estado?.error ? (
                 <p
