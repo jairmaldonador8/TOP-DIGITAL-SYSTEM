@@ -37,3 +37,21 @@ export function inicioDeMes(): string {
   const ahora = new Date()
   return new Date(ahora.getFullYear(), ahora.getMonth(), 1).toISOString()
 }
+
+/** Primer día del mes anterior en ISO, para comparativas. */
+export function inicioDeMesAnterior(): string {
+  const ahora = new Date()
+  return new Date(ahora.getFullYear(), ahora.getMonth() - 1, 1).toISOString()
+}
+
+const fechaLarga = new Intl.DateTimeFormat('es-MX', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+})
+
+/** "Domingo, 20 de julio" (con mayúscula inicial). */
+export function formatoFechaLarga(fecha: Date = new Date()): string {
+  const texto = fechaLarga.format(fecha)
+  return texto.charAt(0).toUpperCase() + texto.slice(1)
+}

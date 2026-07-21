@@ -160,3 +160,23 @@
     transform: translateY(0);
   }
 }
+
+/* Barras que crecen al entrar (sparklines y embudo del dashboard). */
+@keyframes crecer-y {
+  from {
+    transform: scaleY(0);
+  }
+}
+@keyframes crecer-x {
+  from {
+    transform: scaleX(0);
+  }
+}
+@utility animar-crecer-y {
+  transform-origin: bottom;
+  animation: crecer-y 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@utility animar-crecer-x {
+  transform-origin: left;
+  animation: crecer-x 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
