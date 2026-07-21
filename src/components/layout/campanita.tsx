@@ -49,6 +49,7 @@ export function Campanita({
           <Button
             variant="ghost"
             size="icon"
+            data-tour="campanita"
             className="relative"
             aria-label={
               sinLeer > 0

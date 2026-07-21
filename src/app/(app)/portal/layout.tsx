@@ -5,10 +5,10 @@ import { es } from 'date-fns/locale'
 
 import {
   enviarMensajePortal,
-  marcarIntroVista,
   marcarMensajesLeidos,
   marcarNotificacionesLeidas,
 } from './actions'
+import { marcarIntroVista } from '../actions'
 import { ChatFlotante } from '@/components/chat/chat-flotante'
 import type { Mensaje } from '@/components/chat/hilo'
 import {

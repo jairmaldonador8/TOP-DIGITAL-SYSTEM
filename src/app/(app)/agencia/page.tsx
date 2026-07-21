@@ -69,7 +69,7 @@ export default async function PaginaAgencia() {
         </p>
       </header>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div data-tour="metricas" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           destacada
           titulo="Leads del mes"

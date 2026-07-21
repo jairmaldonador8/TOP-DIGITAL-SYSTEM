@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 
+import { marcarIntroVista } from '../actions'
+import { TourAgencia } from '@/components/agencia/tour-agencia'
 import {
   NotificacionesAgencia,
   type ChatPendiente,
@@ -120,6 +122,7 @@ export default async function LayoutAgencia({
       />
       <main className="flex-1 px-4 py-6 lg:px-8 lg:py-8">{children}</main>
       <NotificacionesAgencia pendientes={pendientes} miId={miId} />
+      {actual.introVista ? null : <TourAgencia action={marcarIntroVista} />}
     </div>
   )
 }

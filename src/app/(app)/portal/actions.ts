@@ -49,15 +49,3 @@ export async function marcarNotificacionesLeidas() {
   revalidatePath('/portal', 'layout')
 }
 
-/** Marca el tour de bienvenida como visto (la RLS solo permite la fila propia). */
-export async function marcarIntroVista() {
-  const actual = await usuarioActual()
-  const sub = actual.claims?.sub
-  if (typeof sub !== 'string') return
-  const supabase = await createClient()
-  const { error } = await supabase
-    .from('usuarios')
-    .update({ intro_vista: true })
-    .eq('user_id', sub)
-  if (error) console.error('Error al marcar intro como vista:', error)
-}
