@@ -108,16 +108,23 @@ export default async function PaginaPortal() {
           <StatCard
             titulo="Leads este mes"
             valor={String(leadsMes.count ?? 0)}
+            href="/portal/leads"
           />
           <StatCard
             titulo="Ventas del mes"
             valor={formatoMoneda(ventasMes)}
+            href="/portal/leads"
           />
           <StatCard
             titulo="Campañas activas"
             valor={String(campanias.count ?? 0)}
+            href="/portal/campanias"
           />
-          <StatCard titulo="Conversión" valor={`${conversion}%`} />
+          <StatCard
+            titulo="Conversión"
+            valor={`${conversion}%`}
+            href="/portal/leads"
+          />
         </div>
       </div>
 

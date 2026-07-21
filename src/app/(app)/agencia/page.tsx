@@ -74,15 +74,22 @@ export default async function PaginaAgencia() {
           destacada
           titulo="Leads del mes"
           valor={String(leadsMes.count ?? 0)}
+          href="/agencia/leads"
         />
-        <StatCard titulo="Ventas cerradas" valor={formatoMoneda(ventasMes)} />
+        <StatCard
+          titulo="Ventas cerradas"
+          valor={formatoMoneda(ventasMes)}
+          href="/agencia/reportes"
+        />
         <StatCard
           titulo="Campañas activas"
           valor={String(campanias.count ?? 0)}
+          href="/agencia/campanias"
         />
         <StatCard
           titulo="Tareas pendientes"
           valor={String(tareas.count ?? 0)}
+          href="/agencia/tareas"
         />
       </div>
 

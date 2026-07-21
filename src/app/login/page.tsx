@@ -35,7 +35,7 @@ export default function PaginaLogin() {
         className="absolute top-1/2 left-1/2 size-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-marca-magenta/15 blur-[100px]"
       />
       {/* Halo: borde de degradado fino alrededor de la tarjeta */}
-      <div className="bg-marca relative w-full max-w-sm rounded-[calc(var(--radius)+2px)] p-[1.5px]">
+      <div className="bg-marca animate-in fade-in zoom-in-95 slide-in-from-bottom-4 fill-mode-both relative w-full max-w-sm rounded-[calc(var(--radius)+2px)] p-[1.5px] duration-500">
         <Card className="w-full border-0">
           <CardHeader className="items-center text-center">
             <span

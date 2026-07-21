@@ -35,6 +35,20 @@ export async function marcarMensajesLeidos() {
   revalidatePath('/portal', 'layout')
 }
 
+/** Marca todas las notificaciones del cliente como leídas (campanita). */
+export async function marcarNotificacionesLeidas() {
+  const actual = await usuarioActual()
+  if (actual.rol !== 'cliente' || !actual.clienteId) return
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('notificaciones')
+    .update({ leida: true })
+    .eq('cliente_id', actual.clienteId)
+    .eq('leida', false)
+  if (error) console.error('Error al marcar notificaciones leídas:', error)
+  revalidatePath('/portal', 'layout')
+}
+
 /** Marca el tour de bienvenida como visto (la RLS solo permite la fila propia). */
 export async function marcarIntroVista() {
   const actual = await usuarioActual()

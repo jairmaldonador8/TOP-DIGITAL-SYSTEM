@@ -1,13 +1,20 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
+import { formatDistanceToNow } from 'date-fns'
+import { es } from 'date-fns/locale'
 
 import {
   enviarMensajePortal,
   marcarIntroVista,
   marcarMensajesLeidos,
+  marcarNotificacionesLeidas,
 } from './actions'
 import { ChatFlotante } from '@/components/chat/chat-flotante'
 import type { Mensaje } from '@/components/chat/hilo'
+import {
+  Campanita,
+  type AvisoCampanita,
+} from '@/components/layout/campanita'
 import type { ElementoNav } from '@/components/layout/sidebar'
 import { Topbar } from '@/components/layout/topbar'
 import { TourPortal } from '@/components/portal/tour-portal'
@@ -58,12 +65,40 @@ export default async function LayoutPortal({
     (mensaje) => !mensaje.leido && mensaje.autor_id !== miId
   ).length
 
+  // Campanita: últimas notificaciones (activaciones de campaña, avisos de
+  // la agencia). Abrir el panel las marca como leídas.
+  const { data: notifFilas, error: errorNotif } = await supabase
+    .from('notificaciones')
+    .select('id, texto, tipo, leida, created_at')
+    .order('created_at', { ascending: false })
+    .limit(10)
+  if (errorNotif) console.error('Error al cargar notificaciones:', errorNotif)
+  const notificaciones = notifFilas ?? []
+  const avisos: AvisoCampanita[] = notificaciones.map((n) => ({
+    id: n.id,
+    titulo: n.texto,
+    href: n.tipo === 'campania' ? '/portal/campanias' : '/portal',
+    fecha: formatDistanceToNow(new Date(n.created_at), {
+      addSuffix: true,
+      locale: es,
+    }),
+    leida: n.leida,
+  }))
+  const notifSinLeer = notificaciones.filter((n) => !n.leida).length
+
   return (
     <div className="flex min-h-svh flex-col bg-background">
       <Topbar
         items={ELEMENTOS_PORTAL}
         usuarioNombre={nombre}
         negocioNombre={negocio ?? 'Portal de cliente'}
+        acciones={
+          <Campanita
+            avisos={avisos}
+            sinLeer={notifSinLeer}
+            alAbrir={marcarNotificacionesLeidas}
+          />
+        }
       />
       <main className="flex-1 px-4 py-6 lg:px-8 lg:py-8">{children}</main>
       <ChatFlotante

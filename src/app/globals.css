@@ -139,4 +139,24 @@
   html {
     @apply font-sans;
   }
+
+  /*
+   * Micro-interacciones globales: las tarjetas que viven dentro de un
+   * enlace se elevan con un borde iluminado al pasar el mouse — señal de
+   * "esto lleva a algún lado" sin decorar tarjetas estáticas.
+   */
+  a [data-slot='card'] {
+    transition:
+      transform 0.2s ease,
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+  a:hover [data-slot='card'] {
+    transform: translateY(-2px);
+    border-color: color-mix(in oklch, var(--border), var(--primary) 45%);
+    box-shadow: 0 12px 32px -16px rgb(124 58 237 / 0.45);
+  }
+  a:active [data-slot='card'] {
+    transform: translateY(0);
+  }
 }

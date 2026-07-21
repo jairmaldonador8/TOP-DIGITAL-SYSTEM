@@ -5,6 +5,10 @@ import {
   NotificacionesAgencia,
   type ChatPendiente,
 } from '@/components/chat/notificaciones-agencia'
+import {
+  Campanita,
+  type AvisoCampanita,
+} from '@/components/layout/campanita'
 import type { ElementoNav } from '@/components/layout/sidebar'
 import { Topbar } from '@/components/layout/topbar'
 import { destinoPorRol } from '@/lib/auth/redirect'
@@ -76,9 +80,44 @@ export default async function LayoutAgencia({
   }
   const pendientes = [...porCliente.values()]
 
+  // Campanita: mensajes sin responder + tareas vencidas, cada aviso con
+  // enlace directo a su sección.
+  const hoy = new Date().toISOString().slice(0, 10)
+  const { count: vencidas } = await supabase
+    .from('tareas')
+    .select('id', { count: 'exact', head: true })
+    .neq('estado', 'completada')
+    .lt('fecha_limite', hoy)
+
+  const avisos: AvisoCampanita[] = pendientes.map((chat) => ({
+    id: `chat-${chat.clienteId}`,
+    titulo: `${chat.negocio} te escribió`,
+    detalle:
+      chat.cantidad === 1
+        ? '1 mensaje sin responder'
+        : `${chat.cantidad} mensajes sin responder`,
+    href: `/agencia/chats/${chat.clienteId}`,
+    leida: false,
+  }))
+  if (vencidas) {
+    avisos.push({
+      id: 'tareas-vencidas',
+      titulo: vencidas === 1 ? '1 tarea vencida' : `${vencidas} tareas vencidas`,
+      detalle: 'Revísalas en Tareas',
+      href: '/agencia/tareas',
+      leida: false,
+    })
+  }
+  const sinLeer =
+    pendientes.reduce((suma, chat) => suma + chat.cantidad, 0) + (vencidas ?? 0)
+
   return (
     <div className="flex min-h-svh flex-col bg-background">
-      <Topbar items={ELEMENTOS_AGENCIA} usuarioNombre={nombre} />
+      <Topbar
+        items={ELEMENTOS_AGENCIA}
+        usuarioNombre={nombre}
+        acciones={<Campanita avisos={avisos} sinLeer={sinLeer} />}
+      />
       <main className="flex-1 px-4 py-6 lg:px-8 lg:py-8">{children}</main>
       <NotificacionesAgencia pendientes={pendientes} miId={miId} />
     </div>
