@@ -16,6 +16,7 @@ import {
   formatoFechaCorta,
   formatoFechaHora,
   formatoFechaLarga,
+  hoyEnMexico,
   inicioDeMes,
   inicioDeMesAnterior,
 } from '@/lib/formato'
@@ -58,7 +59,7 @@ export default async function PaginaAgencia() {
   const desde = inicioDeMes()
   const desdeAnterior = inicioDeMesAnterior()
   const ahora = new Date()
-  const hoy = ahora.toISOString().slice(0, 10)
+  const hoy = hoyEnMexico()
   const hace14dias = new Date(ahora.getTime() - 13 * 86400000)
   hace14dias.setHours(0, 0, 0, 0)
   const hace48h = new Date(ahora.getTime() - 48 * 3600000).toISOString()

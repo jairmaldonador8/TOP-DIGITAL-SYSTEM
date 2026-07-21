@@ -15,6 +15,7 @@ import type { ElementoNav } from '@/components/layout/sidebar'
 import { Topbar } from '@/components/layout/topbar'
 import { destinoPorRol } from '@/lib/auth/redirect'
 import { usuarioActual } from '@/lib/auth/usuario-actual'
+import { hoyEnMexico } from '@/lib/formato'
 import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = {
@@ -84,7 +85,7 @@ export default async function LayoutAgencia({
 
   // Campanita: mensajes sin responder + tareas vencidas, cada aviso con
   // enlace directo a su sección.
-  const hoy = new Date().toISOString().slice(0, 10)
+  const hoy = hoyEnMexico()
   const { count: vencidas } = await supabase
     .from('tareas')
     .select('id', { count: 'exact', head: true })

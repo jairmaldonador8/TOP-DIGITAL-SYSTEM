@@ -6,6 +6,7 @@ import {
   type ClienteOpcion,
 } from '@/components/tareas/tarea-form'
 import { Card } from '@/components/ui/card'
+import { hoyEnMexico } from '@/lib/formato'
 import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = {
@@ -57,7 +58,7 @@ export default async function PaginaTareas() {
   const activas = tareas.filter((tarea) => tarea.estado !== 'completada')
   const archivadas = tareas.filter((tarea) => tarea.estado === 'completada')
   const clientes = (clientesRes.data ?? []) as ClienteOpcion[]
-  const hoy = new Date().toISOString().slice(0, 10)
+  const hoy = hoyEnMexico()
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
