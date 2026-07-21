@@ -11,6 +11,7 @@ import { createClient } from '@/lib/supabase/server'
 type FilaUsuario = {
   nombre: string
   cliente_id: string | null
+  intro_vista: boolean
   clientes:
     | { nombre_negocio: string }
     | { nombre_negocio: string }[]
@@ -25,6 +26,8 @@ export type UsuarioActual = {
   clienteId: string | null
   /** nombre_negocio del cliente al que pertenece (solo rol cliente). */
   negocio: string | null
+  /** true si ya vio el tour de bienvenida (true también sin fila: no mostrar). */
+  introVista: boolean
 }
 
 const SIN_SESION: UsuarioActual = {
@@ -33,6 +36,7 @@ const SIN_SESION: UsuarioActual = {
   nombre: null,
   clienteId: null,
   negocio: null,
+  introVista: true,
 }
 
 /**
@@ -48,7 +52,7 @@ export const usuarioActual = cache(async (): Promise<UsuarioActual> => {
 
   const { data: fila } = await supabase
     .from('usuarios')
-    .select('nombre, cliente_id, clientes ( nombre_negocio )')
+    .select('nombre, cliente_id, intro_vista, clientes ( nombre_negocio )')
     .eq('user_id', sub)
     .maybeSingle()
 
@@ -64,5 +68,6 @@ export const usuarioActual = cache(async (): Promise<UsuarioActual> => {
     nombre: usuario?.nombre ?? null,
     clienteId: usuario?.cliente_id ?? null,
     negocio,
+    introVista: usuario?.intro_vista ?? true,
   }
 })

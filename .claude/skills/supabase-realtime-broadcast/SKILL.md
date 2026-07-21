@@ -22,9 +22,11 @@ end $$;
 create trigger mensajes_broadcast after insert on public.mensajes
   for each row execute function public.broadcast_mensaje();
 
--- bell: realtime.send(payload, event, topic, is_public=false)
+-- bell: realtime.send(payload, event, topic, private) — ¡el 4º parámetro es
+-- `private` (default true)! Pasar false lo vuelve PÚBLICO y un suscriptor
+-- con { private: true } nunca lo recibe (falla en silencio).
 perform realtime.send(jsonb_build_object('tipo', new.tipo, 'texto', new.texto),
-  'nueva_notificacion', 'user:' || new.user_id::text, false);
+  'nueva_notificacion', 'user:' || new.user_id::text, true);
 ```
 
 **Channel authorization** — RLS on `realtime.messages` keyed off `realtime.topic()`:

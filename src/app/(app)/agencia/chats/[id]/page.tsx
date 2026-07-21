@@ -3,12 +3,13 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeftIcon } from 'lucide-react'
 
-import { enviarMensajeAgencia } from './actions'
+import { enviarMensajeAgencia, marcarMensajesLeidosAgencia } from './actions'
 import {
   FormularioMensaje,
   HiloMensajes,
   type Mensaje,
 } from '@/components/chat/hilo'
+import { MarcarLeidos } from '@/components/chat/marcar-leidos'
 import { Card, CardContent } from '@/components/ui/card'
 import { usuarioActual } from '@/lib/auth/usuario-actual'
 import { createClient } from '@/lib/supabase/server'
@@ -37,16 +38,24 @@ export default async function PaginaChatCliente({
 
   const { data, error } = await supabase
     .from('mensajes')
-    .select('id, autor_id, autor_nombre, texto, created_at')
+    .select('id, autor_id, autor_nombre, texto, leido, created_at')
     .eq('cliente_id', id)
     .order('created_at', { ascending: true })
     .limit(200)
 
   if (error) console.error('Error al cargar mensajes:', error)
-  const mensajes = (data ?? []) as Mensaje[]
+  const mensajes = (data ?? []) as (Mensaje & { leido: boolean })[]
+  const hayNoLeidos = mensajes.some(
+    (mensaje) => !mensaje.leido && mensaje.autor_id !== miId
+  )
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+      {/* Ver el hilo marca leído lo pendiente (y apaga el aviso flotante). */}
+      <MarcarLeidos
+        hayNoLeidos={hayNoLeidos}
+        action={marcarMensajesLeidosAgencia.bind(null, id)}
+      />
       <header className="flex items-center gap-3">
         <Link
           href="/agencia/chats"

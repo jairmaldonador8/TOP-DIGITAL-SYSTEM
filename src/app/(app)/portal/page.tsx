@@ -86,7 +86,7 @@ export default async function PaginaPortal() {
         </p>
       </header>
 
-      <div className="grid gap-3 lg:grid-cols-[1fr_2fr]">
+      <div data-tour="perfil" className="grid gap-3 lg:grid-cols-[1fr_2fr]">
         {/* Tarjeta de perfil: la marca del cliente al centro del portal. */}
         <Card className="bg-marca items-center gap-1 border-0 px-6 py-8 text-center text-white">
           <span

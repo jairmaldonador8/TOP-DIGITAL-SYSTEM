@@ -106,7 +106,10 @@ export function Topbar({
         aria-label="Navegación principal"
         className="hidden min-w-0 flex-1 justify-center lg:flex"
       >
-        <ul className="flex items-center gap-1 rounded-full border border-border bg-sidebar p-1">
+        <ul
+          data-tour="nav"
+          className="flex items-center gap-1 rounded-full border border-border bg-sidebar p-1"
+        >
           {items.map((item) => {
             const esActivo = item.href === activo?.href
             return (
@@ -146,6 +149,7 @@ export function Topbar({
           bloque de usuario vive en el drawer) */}
       <DropdownMenu>
         <DropdownMenuTrigger
+          data-tour="cuenta"
           aria-label={`Cuenta de ${usuarioNombre}`}
           className="bg-marca hidden shrink-0 rounded-full p-[2px] outline-none focus-visible:ring-2 focus-visible:ring-ring/60 lg:block"
         >

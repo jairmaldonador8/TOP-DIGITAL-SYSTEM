@@ -3,18 +3,28 @@ import Link from 'next/link'
 import { ChevronRightIcon, MessagesSquareIcon } from 'lucide-react'
 
 import { Card, CardContent } from '@/components/ui/card'
+import { usuarioActual } from '@/lib/auth/usuario-actual'
 import { formatoFechaHora } from '@/lib/formato'
 import { createClient } from '@/lib/supabase/server'
+import { cn } from '@/lib/utils'
 
 export const metadata: Metadata = {
   title: 'Chats',
 }
 
 type FilaCliente = { id: string; nombre_negocio: string }
-type FilaMensaje = { cliente_id: string; texto: string; created_at: string }
+type FilaMensaje = {
+  cliente_id: string
+  autor_id: string | null
+  texto: string
+  leido: boolean
+  created_at: string
+}
 
 export default async function PaginaChats() {
   const supabase = await createClient()
+  const actual = await usuarioActual()
+  const miId = typeof actual.claims?.sub === 'string' ? actual.claims.sub : null
 
   const [clientes, mensajes] = await Promise.all([
     supabase
@@ -24,7 +34,7 @@ export default async function PaginaChats() {
       .order('nombre_negocio'),
     supabase
       .from('mensajes')
-      .select('cliente_id, texto, created_at')
+      .select('cliente_id, autor_id, texto, leido, created_at')
       .order('created_at', { ascending: false })
       .limit(300),
   ])
@@ -32,11 +42,18 @@ export default async function PaginaChats() {
   if (clientes.error) console.error('Error al cargar chats:', clientes.error)
   const lista = (clientes.data ?? []) as FilaCliente[]
 
-  // Último mensaje por cliente (la consulta viene en orden descendente).
+  // Último mensaje y no leídos por cliente (la consulta viene descendente).
   const ultimoPor = new Map<string, FilaMensaje>()
+  const noLeidosPor = new Map<string, number>()
   for (const mensaje of (mensajes.data ?? []) as FilaMensaje[]) {
     if (!ultimoPor.has(mensaje.cliente_id)) {
       ultimoPor.set(mensaje.cliente_id, mensaje)
+    }
+    if (!mensaje.leido && mensaje.autor_id !== miId) {
+      noLeidosPor.set(
+        mensaje.cliente_id,
+        (noLeidosPor.get(mensaje.cliente_id) ?? 0) + 1
+      )
     }
   }
 
@@ -77,6 +94,7 @@ export default async function PaginaChats() {
             <ul className="flex flex-col">
               {lista.map((cliente) => {
                 const ultimo = ultimoPor.get(cliente.id)
+                const noLeidos = noLeidosPor.get(cliente.id) ?? 0
                 return (
                   <li key={cliente.id}>
                     <Link
@@ -93,10 +111,22 @@ export default async function PaginaChats() {
                         <span className="block truncate font-medium">
                           {cliente.nombre_negocio}
                         </span>
-                        <span className="block truncate text-sm text-muted-foreground">
+                        <span
+                          className={cn(
+                            'block truncate text-sm',
+                            noLeidos > 0
+                              ? 'font-medium text-foreground'
+                              : 'text-muted-foreground'
+                          )}
+                        >
                           {ultimo?.texto ?? 'Sin mensajes todavía'}
                         </span>
                       </span>
+                      {noLeidos > 0 ? (
+                        <span className="bg-marca flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 text-[11px] font-bold text-white">
+                          {noLeidos > 9 ? '9+' : noLeidos}
+                        </span>
+                      ) : null}
                       {ultimo ? (
                         <span className="shrink-0 text-xs text-muted-foreground">
                           {formatoFechaHora(ultimo.created_at)}
