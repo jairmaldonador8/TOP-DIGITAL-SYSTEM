@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 
 const WHATSAPP_URL =
-  "https://wa.me/12206020831?text=" +
+  "https://wa.me/5212206020831?text=" +
   encodeURIComponent(
     "Hola, vengo del sitio de Top Digital y quiero pedir informes."
   );
@@ -66,7 +66,7 @@ export function RegistroDialog() {
             <MessageCircle aria-hidden className="size-4" />
             Pedir informes por WhatsApp
           </Button>
-          <p className="text-xs text-muted-foreground">+1 220 602 0831</p>
+          <p className="text-xs text-muted-foreground">+52 1 220 602 0831</p>
         </div>
       </DialogContent>
     </Dialog>
