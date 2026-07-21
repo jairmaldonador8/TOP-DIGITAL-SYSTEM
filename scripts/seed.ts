@@ -20,6 +20,13 @@ function fail(context: string, error: { message: string }): never {
   process.exit(1);
 }
 
+/** Contraseñas seed: viven solo en .env.local (el repo es público). */
+function requiredEnv(nombre: string): string {
+  const valor = process.env[nombre];
+  if (!valor) fail(nombre, { message: `falta ${nombre} en .env.local` });
+  return valor;
+}
+
 /** Fecha ISO hace N dias. */
 function diasAtras(n: number): string {
   return new Date(Date.now() - n * 24 * 60 * 60 * 1000).toISOString();
@@ -73,7 +80,7 @@ async function main() {
   );
 
   // ===== 2. Admin =====
-  const adminUser = await ensureAuthUser("admin@topdigital.mx", "TopDigital2026!");
+  const adminUser = await ensureAuthUser("admin@topdigital.mx", requiredEnv("SEED_ADMIN_PASSWORD"));
   await ensureRow(
     "usuarios",
     { user_id: adminUser.id },
@@ -95,7 +102,7 @@ async function main() {
     },
   );
 
-  const demoUser = await ensureAuthUser("demo@tacoselpatron.mx", "Demo2026!");
+  const demoUser = await ensureAuthUser("demo@tacoselpatron.mx", requiredEnv("SEED_DEMO_PASSWORD"));
   await ensureRow(
     "usuarios",
     { user_id: demoUser.id },

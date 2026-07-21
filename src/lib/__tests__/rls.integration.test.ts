@@ -23,9 +23,9 @@ const PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 const SECRET_KEY = process.env.SUPABASE_SECRET_KEY
 
 const DEMO_EMAIL = 'demo@tacoselpatron.mx'
-const DEMO_PASSWORD = 'Demo2026!'
+const DEMO_PASSWORD = process.env.SEED_DEMO_PASSWORD ?? ''
 const ADMIN_EMAIL = 'admin@topdigital.mx'
-const ADMIN_PASSWORD = 'TopDigital2026!'
+const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD ?? ''
 
 // Marcadores unicos para poder limpiar de forma determinista en afterAll
 const MARKER_LEAD_CROSS_TENANT = 'RLS-TEST cross-tenant lead (no debe existir)'

@@ -59,10 +59,17 @@ async function main() {
     process.exit(1);
   }
 
-  const adminClaims = await verificar("admin@topdigital.mx", "TopDigital2026!");
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+  const demoPassword = process.env.SEED_DEMO_PASSWORD;
+  if (!adminPassword || !demoPassword) {
+    console.error("Faltan SEED_ADMIN_PASSWORD o SEED_DEMO_PASSWORD en .env.local");
+    process.exit(1);
+  }
+
+  const adminClaims = await verificar("admin@topdigital.mx", adminPassword);
   assert(adminClaims.user_role === "admin", "admin: user_role === 'admin'");
 
-  const demoClaims = await verificar("demo@tacoselpatron.mx", "Demo2026!");
+  const demoClaims = await verificar("demo@tacoselpatron.mx", demoPassword);
   assert(demoClaims.user_role === "cliente", "demo: user_role === 'cliente'");
   assert(demoClaims.cliente_id === tacos.id, `demo: cliente_id === ${tacos.id}`);
 
