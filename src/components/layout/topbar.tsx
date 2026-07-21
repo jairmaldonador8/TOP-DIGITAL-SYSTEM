@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -158,12 +159,15 @@ export function Topbar({
           </span>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" sideOffset={8}>
-          <DropdownMenuLabel className="truncate">
-            <span className="block">{usuarioNombre}</span>
-            <span className="block text-xs font-normal text-muted-foreground">
-              {negocioNombre ?? 'Agencia Top Digital'}
-            </span>
-          </DropdownMenuLabel>
+          {/* GroupLabel de Base UI debe vivir dentro de un Group */}
+          <DropdownMenuGroup>
+            <DropdownMenuLabel className="truncate">
+              <span className="block">{usuarioNombre}</span>
+              <span className="block text-xs font-normal text-muted-foreground">
+                {negocioNombre ?? 'Agencia Top Digital'}
+              </span>
+            </DropdownMenuLabel>
+          </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             variant="destructive"

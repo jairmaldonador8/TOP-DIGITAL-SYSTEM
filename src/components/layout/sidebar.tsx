@@ -20,6 +20,7 @@ import { cerrarSesion } from '@/app/login/actions'
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -166,9 +167,12 @@ export function Sidebar({ items, usuarioNombre, negocioNombre }: SidebarProps) {
             <ChevronsUpDown aria-hidden className="size-4 shrink-0" />
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" sideOffset={8}>
-            <DropdownMenuLabel className="truncate">
-              {usuarioNombre}
-            </DropdownMenuLabel>
+            {/* GroupLabel de Base UI debe vivir dentro de un Group */}
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="truncate">
+                {usuarioNombre}
+              </DropdownMenuLabel>
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               variant="destructive"
