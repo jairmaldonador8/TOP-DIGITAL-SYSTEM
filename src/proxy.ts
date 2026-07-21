@@ -47,8 +47,9 @@ export async function proxy(request: NextRequest) {
     return response
   }
 
-  // Sin sesión: solo /login es accesible.
-  if (!claims && path !== '/login') {
+  // Sin sesión: solo la landing y /login son accesibles.
+  const esPublica = path === '/' || path === '/login'
+  if (!claims && !esPublica) {
     return redirigir('/login')
   }
 

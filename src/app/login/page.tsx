@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 
 import { iniciarSesion } from "./actions";
+import { RegistroDialog } from "@/components/inicio/registro-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -90,6 +91,9 @@ export default function PaginaLogin() {
                 {pendiente ? "Iniciando sesión…" : "Iniciar sesión"}
               </Button>
             </form>
+            <p className="mt-4 text-center text-sm text-muted-foreground">
+              ¿Aún no tienes cuenta? <RegistroDialog />
+            </p>
           </CardContent>
         </Card>
       </div>
