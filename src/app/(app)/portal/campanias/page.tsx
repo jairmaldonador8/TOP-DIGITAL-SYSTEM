@@ -23,10 +23,12 @@ export default async function PaginaCampaniasPortal() {
   const supabase = await createClient()
 
   // La RLS limita la consulta a las campañas del cliente. El gasto es
-  // información sensible (solo admin) y no se muestra en el portal.
+  // información sensible (solo admin) y no se muestra en el portal; las
+  // archivadas tampoco: son historial interno de la agencia.
   const { data, error } = await supabase
     .from('campanias')
     .select('id, nombre, plataforma, estado, fecha_inicio, leads_generados')
+    .neq('estado', 'archivada')
     .order('created_at', { ascending: false })
 
   if (error) console.error('Error al cargar campañas del portal:', error)

@@ -1,21 +1,28 @@
 import type { Metadata } from 'next'
-import { MegaphoneIcon } from 'lucide-react'
 
+import {
+  CampaniaFormDialog,
+  type ClienteOpcion,
+} from '@/components/campanias/campania-form'
+import {
+  PanelCampanias,
+  type CampaniaView,
+} from '@/components/campanias/panel-campanias'
 import { Card } from '@/components/ui/card'
-import { formatoMoneda } from '@/lib/formato'
 import { createClient } from '@/lib/supabase/server'
-import { cn } from '@/lib/utils'
 
 export const metadata: Metadata = {
   title: 'Campañas',
 }
 
-type FilaCampania = {
+type FilaCampaniaDb = {
   id: string
   nombre: string
   plataforma: string | null
-  estado: 'activa' | 'pausada'
+  estado: 'activa' | 'pausada' | 'archivada'
+  fecha_inicio: string | null
   leads_generados: number
+  cliente_id: string
   clientes: { nombre_negocio: string } | null
 }
 
@@ -23,33 +30,78 @@ export default async function PaginaCampaniasAgencia() {
   const supabase = await createClient()
 
   // Finanzas es tabla sensible (solo admin): consulta aparte del listado.
-  const [campanias, finanzas] = await Promise.all([
+  const [campanias, finanzas, leads, clientesRes] = await Promise.all([
     supabase
       .from('campanias')
       .select(
-        'id, nombre, plataforma, estado, leads_generados, clientes ( nombre_negocio )'
+        'id, nombre, plataforma, estado, fecha_inicio, leads_generados, cliente_id, clientes ( nombre_negocio )'
       )
       .order('created_at', { ascending: false }),
     supabase.from('campania_finanzas').select('campania_id, gasto'),
+    supabase
+      .from('leads')
+      .select('campania_id, etapa')
+      .not('campania_id', 'is', null),
+    supabase
+      .from('clientes')
+      .select('id, nombre_negocio')
+      .eq('estado', 'activo')
+      .order('nombre_negocio'),
   ])
 
   if (campanias.error) {
     console.error('Error al cargar campañas:', campanias.error)
   }
-  const lista = (campanias.data ?? []) as unknown as FilaCampania[]
+
   const gastoPor = new Map(
     ((finanzas.data ?? []) as { campania_id: string; gasto: number }[]).map(
       (fila) => [fila.campania_id, fila.gasto]
     )
   )
 
+  // Métricas reales desde la tabla de leads (ligados por campania_id).
+  const statsPor = new Map<string, { total: number; ganados: number }>()
+  for (const lead of (leads.data ?? []) as {
+    campania_id: string
+    etapa: string
+  }[]) {
+    const stats = statsPor.get(lead.campania_id) ?? { total: 0, ganados: 0 }
+    stats.total += 1
+    if (lead.etapa === 'ganado') stats.ganados += 1
+    statsPor.set(lead.campania_id, stats)
+  }
+
+  const lista: CampaniaView[] = (
+    (campanias.data ?? []) as unknown as FilaCampaniaDb[]
+  ).map((campania) => {
+    const stats = statsPor.get(campania.id)
+    return {
+      id: campania.id,
+      nombre: campania.nombre,
+      plataforma: campania.plataforma,
+      estado: campania.estado,
+      fecha_inicio: campania.fecha_inicio,
+      cliente: campania.clientes?.nombre_negocio ?? '—',
+      clienteId: campania.cliente_id,
+      gasto: gastoPor.get(campania.id) ?? null,
+      // Si aún no hay leads ligados, se muestra el contador manual.
+      leads: stats?.total || campania.leads_generados,
+      ganados: stats?.ganados ?? 0,
+    }
+  })
+
+  const clientes = (clientesRes.data ?? []) as ClienteOpcion[]
+
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Campañas</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Todas las campañas de tus clientes, con su gasto.
-        </p>
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Campañas</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Las campañas de cada cliente y cómo van.
+          </p>
+        </div>
+        <CampaniaFormDialog clientes={clientes} />
       </header>
 
       {campanias.error ? (
@@ -59,61 +111,8 @@ export default async function PaginaCampaniasAgencia() {
             intentarlo de nuevo.
           </p>
         </Card>
-      ) : lista.length === 0 ? (
-        <Card className="items-center gap-4 py-14 text-center">
-          <span className="flex size-12 items-center justify-center rounded-full bg-secondary">
-            <MegaphoneIcon aria-hidden className="size-5 text-marca-magenta" />
-          </span>
-          <div>
-            <h2 className="text-lg font-semibold">Aún no hay campañas</h2>
-            <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
-              Registra las campañas de tus clientes para darles seguimiento.
-            </p>
-          </div>
-        </Card>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {lista.map((campania) => {
-            const gasto = gastoPor.get(campania.id)
-            return (
-              <Card key={campania.id} className="gap-3 px-6 py-5">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold">{campania.nombre}</p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {campania.clientes?.nombre_negocio ?? '—'}
-                      {campania.plataforma ? ` · ${campania.plataforma}` : ''}
-                    </p>
-                  </div>
-                  <span
-                    className={cn(
-                      'inline-flex h-5 shrink-0 items-center rounded-4xl px-2 text-xs font-medium',
-                      campania.estado === 'activa'
-                        ? 'bg-marca text-white'
-                        : 'bg-muted text-muted-foreground'
-                    )}
-                  >
-                    {campania.estado === 'activa' ? 'Activa' : 'Pausada'}
-                  </span>
-                </div>
-                <div className="flex items-end justify-between">
-                  <div>
-                    <p className="text-2xl font-bold tracking-tight">
-                      {campania.leads_generados}
-                    </p>
-                    <p className="text-xs text-muted-foreground">leads</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-semibold">
-                      {gasto != null ? formatoMoneda(gasto) : '—'}
-                    </p>
-                    <p className="text-xs text-muted-foreground">gasto</p>
-                  </div>
-                </div>
-              </Card>
-            )
-          })}
-        </div>
+        <PanelCampanias campanias={lista} />
       )}
     </div>
   )

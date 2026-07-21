@@ -4,7 +4,8 @@ export default function CargandoCampanias() {
   return (
     <SeccionCargando
       titulo="Campañas"
-      descripcion="Todas las campañas de tus clientes, con su gasto."
+      descripcion="Las campañas de cada cliente y cómo van."
+      conAccion
     />
   )
 }
