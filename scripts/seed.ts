@@ -90,7 +90,7 @@ async function main() {
   // ===== 3. Cliente demo: Tacos El Patrón =====
   const tacos = await ensureRow<{ id: string }>(
     "clientes",
-    { nombre_negocio: "Tacos El Patrón" },
+    { nombre_negocio: "Tacos El Patrón (Demo)" },
     {
       contacto_nombre: "Carlos Mendoza",
       email: "demo@tacoselpatron.mx",

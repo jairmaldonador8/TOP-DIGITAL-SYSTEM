@@ -52,7 +52,7 @@ async function main() {
   const { data: tacos, error } = await adminClient
     .from("clientes")
     .select("id")
-    .eq("nombre_negocio", "Tacos El Patrón")
+    .eq("nombre_negocio", "Tacos El Patrón (Demo)")
     .single();
   if (error || !tacos) {
     console.error(`No se encontró el cliente demo (¿corriste npm run seed?): ${error?.message}`);
