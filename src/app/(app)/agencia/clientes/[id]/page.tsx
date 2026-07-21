@@ -23,6 +23,7 @@ import {
   ETIQUETAS_FUENTE,
   type EtapaLead,
 } from '@/components/leads/badges'
+import { TrackerProgreso } from '@/components/paneles/tracker-progreso'
 import {
   Card,
   CardAction,
@@ -66,6 +67,7 @@ type FilaLead = {
   fuente: string
   etapa: EtapaLead
   monto_venta: number | null
+  fecha_cierre: string | null
   campania_id: string | null
   created_at: string
 }
@@ -120,10 +122,12 @@ export default async function PaginaCliente({
       .order('created_at', { ascending: true }),
     supabase
       .from('leads')
-      .select('id, nombre, fuente, etapa, monto_venta, campania_id, created_at')
+      .select(
+        'id, nombre, fuente, etapa, monto_venta, fecha_cierre, campania_id, created_at'
+      )
       .eq('cliente_id', cliente.id)
       .order('created_at', { ascending: false })
-      .limit(200),
+      .limit(1000),
     supabase
       .from('campanias')
       .select('id, nombre, plataforma, estado, fecha_inicio, leads_generados')
@@ -233,7 +237,13 @@ export default async function PaginaCliente({
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="resumen">
+        <TabsContent value="resumen" className="flex flex-col gap-4">
+          <TrackerProgreso
+            titulo={`Progreso de ${cliente.nombre_negocio}`}
+            desde={cliente.created_at}
+            meta={Number(cliente.meta_facturacion)}
+            leads={listaLeads}
+          />
           <Card>
             <CardHeader>
               <CardTitle>Información del negocio</CardTitle>
@@ -356,7 +366,7 @@ export default async function PaginaCliente({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {listaLeads.map((lead) => (
+                    {listaLeads.slice(0, 100).map((lead) => (
                       <TableRow key={lead.id}>
                         <TableCell className="font-medium">
                           {lead.nombre}
