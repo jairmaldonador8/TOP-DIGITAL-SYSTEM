@@ -161,6 +161,53 @@
   }
 }
 
+/*
+ * Transición entre secciones (View Transitions API vía <ViewTransition>
+ * de React, aplicada por los templates de agencia y portal): la vista que
+ * sale se desvanece rápido desenfocándose hacia arriba y la nueva entra
+ * enfocándose desde abajo, con timing asimétrico — la salida es veloz para
+ * no competir por atención y la entrada es suave para que se registre.
+ */
+::view-transition-old(.vista-sale) {
+  animation: 160ms cubic-bezier(0.4, 0, 1, 1) both vista-salida;
+}
+::view-transition-new(.vista-entra) {
+  animation: 480ms cubic-bezier(0.16, 1, 0.3, 1) 100ms both vista-entrada;
+}
+@keyframes vista-salida {
+  to {
+    opacity: 0;
+    translate: 0 -10px;
+    scale: 0.992;
+    filter: blur(8px);
+  }
+}
+@keyframes vista-entrada {
+  from {
+    opacity: 0;
+    translate: 0 18px;
+    scale: 0.985;
+    filter: blur(10px);
+  }
+}
+
+/*
+ * La píldora activa de la navegación se desliza como un objeto sólido
+ * hasta la nueva sección (shared element morph). Se oculta el snapshot
+ * viejo y se anula el cross-fade para que se vea UNA píldora moviéndose,
+ * no dos fundiéndose.
+ */
+::view-transition-group(.pildora-nav) {
+  animation-duration: 380ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+::view-transition-old(.pildora-nav) {
+  display: none;
+}
+::view-transition-new(.pildora-nav) {
+  animation: none;
+}
+
 /* Barras que crecen al entrar (sparklines y embudo del dashboard). */
 @keyframes crecer-y {
   from {
@@ -179,4 +226,49 @@
 @utility animar-crecer-x {
   transform-origin: left;
   animation: crecer-x 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Palomita que se dibuja al completar una tarea (path con pathLength=1). */
+@keyframes trazo {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@utility animar-trazo {
+  stroke-dasharray: 1;
+  animation: trazo 0.4s 0.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Tachado que barre el título de una tarea al completarla. */
+@utility tachado-animado {
+  position: relative;
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    height: 1.5px;
+    width: 100%;
+    background: currentColor;
+    transform-origin: left;
+    animation: crecer-x 0.45s 0.15s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+/* Con prefers-reduced-motion las entradas muestran el estado final directo. */
+@media (prefers-reduced-motion: reduce) {
+  .animar-crecer-y,
+  .animar-crecer-x {
+    animation-duration: 0.01ms;
+    animation-delay: 0ms;
+  }
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
 }

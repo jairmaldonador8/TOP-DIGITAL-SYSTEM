@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { ViewTransition } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Bell, LogOut, Menu } from 'lucide-react'
@@ -119,13 +120,28 @@ export function Topbar({
                   href={item.href}
                   aria-current={esActivo ? 'page' : undefined}
                   className={cn(
-                    'block rounded-full px-4 py-1.5 text-[13px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/60',
+                    'relative block rounded-full px-4 py-1.5 text-[13px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/60',
                     esActivo
-                      ? 'bg-marca font-semibold text-white'
+                      ? 'font-semibold text-white'
                       : 'text-muted-foreground hover:text-foreground'
                   )}
                 >
-                  {item.label}
+                  {/* La píldora del degradado es un elemento propio para
+                      que al navegar se deslice a la sección nueva (shared
+                      element morph, reglas .pildora-nav en globals.css). */}
+                  {esActivo ? (
+                    <ViewTransition
+                      name="pildora-nav"
+                      share="pildora-nav"
+                      default="none"
+                    >
+                      <span
+                        aria-hidden
+                        className="bg-marca absolute inset-0 rounded-full"
+                      />
+                    </ViewTransition>
+                  ) : null}
+                  <span className="relative">{item.label}</span>
                 </Link>
               </li>
             )
