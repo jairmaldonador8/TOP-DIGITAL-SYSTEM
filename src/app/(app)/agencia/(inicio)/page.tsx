@@ -1,7 +1,10 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { ListChecksIcon, MegaphoneIcon, SparklesIcon } from 'lucide-react'
 
 import { Atencion, type PuntoAtencion } from '@/components/paneles/atencion'
+import { CifraAnimada } from '@/components/paneles/cifra-animada'
+import { Dona } from '@/components/paneles/dona'
 import { Embudo } from '@/components/paneles/embudo'
 import { StatCard } from '@/components/paneles/stat-card'
 import { EtapaBadge, type EtapaLead } from '@/components/leads/badges'
@@ -16,6 +19,7 @@ import {
   formatoFechaCorta,
   formatoFechaHora,
   formatoFechaLarga,
+  formatoMoneda,
   hoyEnMexico,
   inicioDeMes,
   inicioDeMesAnterior,
@@ -40,6 +44,11 @@ type LeadReciente = {
   created_at: string
   clientes: { nombre_negocio: string } | null
 }
+
+const mesEnCurso = new Intl.DateTimeFormat('es-MX', {
+  timeZone: 'America/Mexico_City',
+  month: 'long',
+})
 
 /** "+38% vs mes pasado" — o "primer mes" cuando no hay base de comparación. */
 function tendenciaVs(actual: number, anterior: number) {
@@ -77,6 +86,7 @@ export default async function PaginaAgencia() {
     mensajesSinResponder,
     leadsSinAtender,
     leads14dias,
+    metasClientes,
   ] = await Promise.all([
     supabase.from('leads').select('id, etapa').gte('created_at', desde),
     supabase
@@ -134,6 +144,11 @@ export default async function PaginaAgencia() {
       .from('leads')
       .select('created_at')
       .gte('created_at', hace14dias.toISOString()),
+    supabase
+      .from('clientes')
+      .select('meta_facturacion')
+      .eq('es_agencia', false)
+      .eq('estado', 'activo'),
   ])
 
   // ===== Métricas y tendencias =====
@@ -143,6 +158,16 @@ export default async function PaginaAgencia() {
     (filas ?? []).reduce((suma, lead) => suma + (lead.monto_venta ?? 0), 0)
   const ventasMes = sumaVentas(ganadosMes.data)
   const ventasAnterior = sumaVentas(ganadosAnterior.data)
+  const ganadosDelMes = (ganadosMes.data ?? []).length
+  const conversionMes =
+    totalLeadsMes > 0 ? Math.round((ganadosDelMes / totalLeadsMes) * 100) : 0
+
+  // Meta global: la suma de las metas de facturación de los clientes activos.
+  const metaGlobal = (
+    (metasClientes.data ?? []) as { meta_facturacion: number }[]
+  ).reduce((suma, fila) => suma + Number(fila.meta_facturacion ?? 0), 0)
+  const pctMetaGlobal = metaGlobal > 0 ? (ventasMes / metaGlobal) * 100 : 0
+  const mesNombre = mesEnCurso.format(new Date())
 
   // ===== Sparkline: leads por día, últimos 14 días =====
   const porDia = new Array<number>(14).fill(0)
@@ -205,7 +230,7 @@ export default async function PaginaAgencia() {
   const listaLeads = (leadsRecientes.data ?? []) as unknown as LeadReciente[]
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 sm:gap-6">
       <header className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">
@@ -222,42 +247,134 @@ export default async function PaginaAgencia() {
 
       <Atencion puntos={puntos} />
 
-      <div
+      <section
         data-tour="metricas"
-        className="animate-in fade-in slide-in-from-bottom-3 fill-mode-both grid gap-3 delay-100 duration-500 sm:grid-cols-2 lg:grid-cols-4"
+        className="animate-in fade-in slide-in-from-bottom-3 fill-mode-both flex flex-col gap-3 delay-100 duration-500"
       >
-        <StatCard
-          destacada
-          titulo="Leads del mes"
-          cifra={{ valor: totalLeadsMes }}
-          tendencia={tendenciaVs(totalLeadsMes, leadsAnterior.count ?? 0)}
-          sparkline={porDia}
-          href="/agencia/leads"
-        />
-        <StatCard
-          titulo="Ventas cerradas"
-          cifra={{ valor: ventasMes, formato: 'moneda' }}
-          tendencia={tendenciaVs(ventasMes, ventasAnterior)}
-          href="/agencia/reportes"
-        />
-        <StatCard
-          titulo="Campañas activas"
-          cifra={{ valor: campanias.count ?? 0 }}
-          href="/agencia/campanias"
-        />
-        <StatCard
-          titulo="Tareas pendientes"
-          cifra={{ valor: tareas.count ?? 0 }}
-          detalle={
-            vencidas > 0
-              ? vencidas === 1
-                ? '1 vencida'
-                : `${vencidas} vencidas`
-              : 'Ninguna vencida'
-          }
-          href="/agencia/tareas"
-        />
-      </div>
+        {/* Tarjeta principal con aura de degradado (estilo balance) */}
+        <Card className="relative gap-5 overflow-hidden border-border/60 px-6 py-6 sm:px-8 sm:py-7">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -top-28 -left-16 size-72 rounded-full bg-marca-violeta/45 blur-3xl"
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -right-14 -bottom-32 size-80 rounded-full bg-marca-naranja/35 blur-3xl"
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute top-0 left-1/2 size-44 -translate-x-1/3 rounded-full bg-marca-magenta/30 blur-3xl"
+          />
+
+          <div className="relative">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm text-muted-foreground">
+                Ventas cerradas de {mesNombre}
+              </p>
+              <span className="rounded-full bg-marca-magenta/15 px-2.5 py-0.5 text-xs font-semibold text-marca-magenta">
+                {tendenciaVs(ventasMes, ventasAnterior).texto}
+              </span>
+            </div>
+            <p className="mt-1 text-4xl font-bold tracking-tight sm:text-5xl">
+              <CifraAnimada valor={ventasMes} formato="moneda" />
+            </p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              entre todos tus clientes
+            </p>
+          </div>
+        </Card>
+
+        {/*
+          Bento: en móvil los cuadritos chicos van lado a lado y las donas
+          debajo en par; en desktop los cuadritos se apilan en una columna
+          angosta jugando contra las donas y el sparkline.
+        */}
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="col-span-2 grid grid-cols-2 gap-3 lg:col-span-1 lg:grid-cols-1">
+            <Link
+              href="/agencia/campanias"
+              className="outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+            >
+              <Card className="h-full justify-between gap-3 px-4 py-4">
+                <span
+                  aria-hidden
+                  className="flex size-9 items-center justify-center rounded-xl bg-marca-violeta/20"
+                >
+                  <MegaphoneIcon className="size-4.5 text-marca-violeta" />
+                </span>
+                <div>
+                  <p className="text-2xl font-bold tracking-tight">
+                    <CifraAnimada valor={campanias.count ?? 0} />
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Campañas activas
+                  </p>
+                </div>
+              </Card>
+            </Link>
+            <Link
+              href="/agencia/tareas"
+              className="outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+            >
+              <Card className="h-full justify-between gap-3 px-4 py-4">
+                <span
+                  aria-hidden
+                  className="flex size-9 items-center justify-center rounded-xl bg-marca-naranja/15"
+                >
+                  <ListChecksIcon className="size-4.5 text-marca-naranja" />
+                </span>
+                <div>
+                  <p className="text-2xl font-bold tracking-tight">
+                    <CifraAnimada valor={tareas.count ?? 0} />
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Tareas pendientes
+                    {vencidas > 0 ? (
+                      <span className="text-destructive">
+                        {' '}
+                        · {vencidas} {vencidas === 1 ? 'vencida' : 'vencidas'}
+                      </span>
+                    ) : null}
+                  </p>
+                </div>
+              </Card>
+            </Link>
+          </div>
+
+          <Card className="items-center justify-between gap-2 px-4 py-5 text-center">
+            <p className="text-sm font-semibold">Meta global</p>
+            {metaGlobal > 0 ? (
+              <>
+                <Dona pct={pctMetaGlobal} id="meta-agencia" />
+                <p className="text-xs text-muted-foreground">
+                  {formatoMoneda(ventasMes)} de {formatoMoneda(metaGlobal)}
+                </p>
+              </>
+            ) : (
+              <p className="py-10 text-sm text-muted-foreground">
+                Configura metas en tus clientes
+              </p>
+            )}
+          </Card>
+          <Card className="items-center justify-between gap-2 px-4 py-5 text-center">
+            <p className="text-sm font-semibold">Conversión</p>
+            <Dona pct={conversionMes} id="conversion-agencia" />
+            <p className="text-xs text-muted-foreground">
+              {ganadosDelMes} {ganadosDelMes === 1 ? 'venta' : 'ventas'} de{' '}
+              {totalLeadsMes} {totalLeadsMes === 1 ? 'lead' : 'leads'}
+            </p>
+          </Card>
+          <div className="col-span-2 lg:col-span-1">
+            <StatCard
+              titulo="Leads del mes"
+              cifra={{ valor: totalLeadsMes }}
+              tendencia={tendenciaVs(totalLeadsMes, leadsAnterior.count ?? 0)}
+              sparkline={porDia}
+              href="/agencia/leads"
+            />
+          </div>
+        </div>
+      </section>
 
       <div className="animate-in fade-in slide-in-from-bottom-3 fill-mode-both grid gap-6 delay-200 duration-500 lg:grid-cols-5">
         <Card className="lg:col-span-3">
@@ -330,9 +447,15 @@ export default async function PaginaAgencia() {
               {listaActividades.map((actividad) => (
                 <li
                   key={actividad.id}
-                  className="flex items-baseline justify-between gap-4 border-b border-border py-3 text-sm last:border-0 last:pb-0"
+                  className="flex items-center gap-3 border-b border-border py-3 text-sm last:border-0 last:pb-0"
                 >
-                  <div className="min-w-0">
+                  <span
+                    aria-hidden
+                    className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-secondary"
+                  >
+                    <SparklesIcon className="size-4 text-marca-magenta" />
+                  </span>
+                  <div className="min-w-0 flex-1">
                     <p className="truncate">{actividad.texto}</p>
                     <p className="text-xs text-muted-foreground">
                       {actividad.clientes?.nombre_negocio ?? '—'}

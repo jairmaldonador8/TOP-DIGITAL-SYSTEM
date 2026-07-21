@@ -60,6 +60,13 @@ export function ChatFlotante({
     }
   }, [abierto, mensajes.length])
 
+  // La tarjeta "Chat directo" del dashboard también abre este panel.
+  React.useEffect(() => {
+    const abrir = () => setAbierto(true)
+    window.addEventListener('abrir-chat-portal', abrir)
+    return () => window.removeEventListener('abrir-chat-portal', abrir)
+  }, [])
+
   return (
     <>
       {abierto ? (
