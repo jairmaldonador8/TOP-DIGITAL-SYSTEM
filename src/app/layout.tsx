@@ -22,6 +22,19 @@ export const metadata: Metadata = {
   },
   description:
     "Plataforma de Top Digital: seguimiento de leads, campañas y resultados para tu negocio.",
+  // Instalable como app: icono en iPhone y modo standalone (ver manifest.ts).
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
+  appleWebApp: {
+    capable: true,
+    title: "Top Digital",
+    statusBarStyle: "black-translucent",
+  },
+};
+
+export const viewport = {
+  themeColor: "#0d0b10",
 };
 
 export default function RootLayout({

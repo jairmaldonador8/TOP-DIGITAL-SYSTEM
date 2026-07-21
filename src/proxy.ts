@@ -84,13 +84,15 @@ export const config = {
      * Todas las rutas excepto:
      * - _next/static (archivos estáticos)
      * - _next/image (optimización de imágenes)
-     * - favicon.ico
+     * - favicon.ico y manifest.webmanifest (el navegador pide el manifest
+     *   SIN cookies: si pasara por el proxy, redirigiría a /login y la
+     *   instalación como app fallaría)
      * - imágenes (svg, png, jpg, jpeg, gif, webp)
      *
      * NOTA: las rutas /api NO están excluidas todavía; si se agregan
      * route handlers (p. ej. webhooks públicos) habrá que ajustar este
      * matcher o manejarlos explícitamente dentro del proxy.
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
