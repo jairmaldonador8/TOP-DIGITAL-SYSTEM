@@ -3,6 +3,11 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeftIcon } from 'lucide-react'
 
+import { CampaniaFormDialog } from '@/components/campanias/campania-form'
+import {
+  PanelCampanias,
+  type CampaniaView,
+} from '@/components/campanias/panel-campanias'
 import { BotonCambiarEstado } from '@/components/clientes/cambiar-estado'
 import {
   ClienteFormDialog,
@@ -14,6 +19,11 @@ import {
 } from '@/components/clientes/estado-badge'
 import { UsuarioFormDialog } from '@/components/clientes/usuario-form'
 import {
+  EtapaBadge,
+  ETIQUETAS_FUENTE,
+  type EtapaLead,
+} from '@/components/leads/badges'
+import {
   Card,
   CardAction,
   CardContent,
@@ -21,7 +31,16 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { formatoFechaCorta, formatoMoneda } from '@/lib/formato'
 import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = {
@@ -39,6 +58,25 @@ type FilaUsuario = {
   nombre: string
   rol: 'admin' | 'cliente'
   created_at: string
+}
+
+type FilaLead = {
+  id: string
+  nombre: string
+  fuente: string
+  etapa: EtapaLead
+  monto_venta: number | null
+  campania_id: string | null
+  created_at: string
+}
+
+type FilaCampaniaDb = {
+  id: string
+  nombre: string
+  plataforma: string | null
+  estado: 'activa' | 'pausada' | 'archivada'
+  fecha_inicio: string | null
+  leads_generados: number
 }
 
 const MONEDA = new Intl.NumberFormat('es-MX', {
@@ -74,17 +112,77 @@ export default async function PaginaCliente({
   // La agencia misma no se administra como cliente.
   if (!cliente || cliente.es_agencia) notFound()
 
-  const { data: usuarios, error: errorUsuarios } = await supabase
-    .from('usuarios')
-    .select('id, nombre, rol, created_at')
-    .eq('cliente_id', cliente.id)
-    .order('created_at', { ascending: true })
+  const [usuariosRes, leadsRes, campaniasRes, finanzasRes] = await Promise.all([
+    supabase
+      .from('usuarios')
+      .select('id, nombre, rol, created_at')
+      .eq('cliente_id', cliente.id)
+      .order('created_at', { ascending: true }),
+    supabase
+      .from('leads')
+      .select('id, nombre, fuente, etapa, monto_venta, campania_id, created_at')
+      .eq('cliente_id', cliente.id)
+      .order('created_at', { ascending: false })
+      .limit(200),
+    supabase
+      .from('campanias')
+      .select('id, nombre, plataforma, estado, fecha_inicio, leads_generados')
+      .eq('cliente_id', cliente.id)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('campania_finanzas')
+      .select('campania_id, gasto')
+      .eq('cliente_id', cliente.id),
+  ])
 
+  const errorUsuarios = usuariosRes.error
   if (errorUsuarios) {
     console.error('Error al cargar usuarios del cliente:', errorUsuarios)
   }
+  if (leadsRes.error) {
+    console.error('Error al cargar leads del cliente:', leadsRes.error)
+  }
+  if (campaniasRes.error) {
+    console.error('Error al cargar campañas del cliente:', campaniasRes.error)
+  }
 
-  const listaUsuarios = (usuarios ?? []) as FilaUsuario[]
+  const listaUsuarios = (usuariosRes.data ?? []) as FilaUsuario[]
+  const listaLeads = (leadsRes.data ?? []) as FilaLead[]
+
+  // Métricas por campaña a partir de los leads ya consultados.
+  const gastoPor = new Map(
+    ((finanzasRes.data ?? []) as { campania_id: string; gasto: number }[]).map(
+      (fila) => [fila.campania_id, fila.gasto]
+    )
+  )
+  const statsPor = new Map<string, { total: number; ganados: number }>()
+  for (const lead of listaLeads) {
+    if (!lead.campania_id) continue
+    const stats = statsPor.get(lead.campania_id) ?? { total: 0, ganados: 0 }
+    stats.total += 1
+    if (lead.etapa === 'ganado') stats.ganados += 1
+    statsPor.set(lead.campania_id, stats)
+  }
+  const listaCampanias: CampaniaView[] = (
+    (campaniasRes.data ?? []) as FilaCampaniaDb[]
+  ).map((campania) => {
+    const stats = statsPor.get(campania.id)
+    return {
+      id: campania.id,
+      nombre: campania.nombre,
+      plataforma: campania.plataforma,
+      estado: campania.estado,
+      fecha_inicio: campania.fecha_inicio,
+      cliente: cliente.nombre_negocio,
+      clienteId: cliente.id,
+      gasto: gastoPor.get(campania.id) ?? null,
+      leads: stats?.total || campania.leads_generados,
+      ganados: stats?.ganados ?? 0,
+    }
+  })
+  const campaniasSinArchivar = listaCampanias.filter(
+    (campania) => campania.estado !== 'archivada'
+  )
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
@@ -124,12 +222,14 @@ export default async function PaginaCliente({
         <TabsList>
           <TabsTrigger value="resumen">Resumen</TabsTrigger>
           <TabsTrigger value="usuarios">Usuarios</TabsTrigger>
-          {/* Se habilitan en las Tareas 8 y 9 */}
-          <TabsTrigger value="leads" disabled>
-            Leads
+          <TabsTrigger value="leads">
+            Leads{listaLeads.length > 0 ? ` · ${listaLeads.length}` : ''}
           </TabsTrigger>
-          <TabsTrigger value="campanias" disabled>
+          <TabsTrigger value="campanias">
             Campañas
+            {campaniasSinArchivar.length > 0
+              ? ` · ${campaniasSinArchivar.length}`
+              : ''}
           </TabsTrigger>
         </TabsList>
 
@@ -226,6 +326,84 @@ export default async function PaginaCliente({
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="leads">
+          <Card className="py-2">
+            <CardContent className="px-2">
+              {leadsRes.error ? (
+                <p
+                  role="alert"
+                  className="py-6 text-center text-sm text-destructive"
+                >
+                  No se pudieron cargar los leads. Recarga la página para
+                  intentarlo de nuevo.
+                </p>
+              ) : listaLeads.length === 0 ? (
+                <p className="py-6 text-center text-sm text-muted-foreground">
+                  {cliente.nombre_negocio} todavía no tiene leads. Cuando
+                  lleguen los verás aquí.
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Lead</TableHead>
+                      <TableHead>Fuente</TableHead>
+                      <TableHead>Etapa</TableHead>
+                      <TableHead className="text-right">Venta</TableHead>
+                      <TableHead className="text-right">Fecha</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {listaLeads.map((lead) => (
+                      <TableRow key={lead.id}>
+                        <TableCell className="font-medium">
+                          {lead.nombre}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {ETIQUETAS_FUENTE[lead.fuente] ?? lead.fuente}
+                        </TableCell>
+                        <TableCell>
+                          <EtapaBadge etapa={lead.etapa} />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {lead.monto_venta != null
+                            ? formatoMoneda(lead.monto_venta)
+                            : '—'}
+                        </TableCell>
+                        <TableCell className="text-right text-muted-foreground">
+                          {formatoFechaCorta(lead.created_at)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="campanias" className="flex flex-col gap-4">
+          {campaniasRes.error ? (
+            <Card className="items-center py-10 text-center">
+              <p className="max-w-sm text-sm text-destructive" role="alert">
+                No se pudieron cargar las campañas. Recarga la página para
+                intentarlo de nuevo.
+              </p>
+            </Card>
+          ) : (
+            <>
+              <div className="flex justify-end">
+                <CampaniaFormDialog
+                  clientes={[
+                    { id: cliente.id, nombre_negocio: cliente.nombre_negocio },
+                  ]}
+                />
+              </div>
+              <PanelCampanias campanias={listaCampanias} conFiltro={false} />
+            </>
+          )}
         </TabsContent>
       </Tabs>
     </div>
