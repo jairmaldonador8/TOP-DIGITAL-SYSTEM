@@ -251,6 +251,10 @@ export default async function PaginaCliente({
         </TabsList>
 
         <TabsContent value="resumen" className="flex flex-col gap-4">
+          <ConexionMeta
+            clienteId={cliente.id}
+            metaAdAccountId={cliente.meta_ad_account_id}
+          />
           <TrackerProgreso
             titulo={`Progreso de ${cliente.nombre_negocio}`}
             desde={cliente.created_at}
@@ -289,10 +293,6 @@ export default async function PaginaCliente({
               </dl>
             </CardContent>
           </Card>
-          <ConexionMeta
-            clienteId={cliente.id}
-            metaAdAccountId={cliente.meta_ad_account_id}
-          />
         </TabsContent>
 
         <TabsContent value="usuarios">

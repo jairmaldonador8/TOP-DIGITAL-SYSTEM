@@ -1,6 +1,12 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ListChecksIcon, MegaphoneIcon, SparklesIcon } from 'lucide-react'
+import {
+  ChevronRightIcon,
+  ListChecksIcon,
+  MegaphoneIcon,
+  PlugIcon,
+  SparklesIcon,
+} from 'lucide-react'
 
 import { Atencion, type PuntoAtencion } from '@/components/paneles/atencion'
 import { CifraAnimada } from '@/components/paneles/cifra-animada'
@@ -87,6 +93,7 @@ export default async function PaginaAgencia() {
     leadsSinAtender,
     leads14dias,
     metasClientes,
+    clientesMeta,
   ] = await Promise.all([
     supabase.from('leads').select('id, etapa').gte('created_at', desde),
     supabase
@@ -149,6 +156,12 @@ export default async function PaginaAgencia() {
       .select('meta_facturacion')
       .eq('es_agencia', false)
       .eq('estado', 'activo'),
+    supabase
+      .from('clientes')
+      .select('id, nombre_negocio, meta_ad_account_id')
+      .eq('es_agencia', false)
+      .eq('estado', 'activo')
+      .order('nombre_negocio'),
   ])
 
   // ===== Métricas y tendencias =====
@@ -228,6 +241,14 @@ export default async function PaginaAgencia() {
 
   const listaActividades = (actividades.data ?? []) as unknown as Actividad[]
   const listaLeads = (leadsRecientes.data ?? []) as unknown as LeadReciente[]
+  const listaClientesMeta = (clientesMeta.data ?? []) as {
+    id: string
+    nombre_negocio: string
+    meta_ad_account_id: string | null
+  }[]
+  const sinVincular = listaClientesMeta.filter(
+    (c) => !c.meta_ad_account_id
+  ).length
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 sm:gap-6">
@@ -375,6 +396,66 @@ export default async function PaginaAgencia() {
           </div>
         </div>
       </section>
+
+      {/* Conexión Meta: acceso directo a vincular la cuenta publicitaria
+          de cada cliente (el selector vive en su ficha). */}
+      <Card className="animate-in fade-in slide-in-from-bottom-3 fill-mode-both delay-150 duration-500">
+        <CardHeader className="flex flex-row items-center justify-between gap-2">
+          <CardTitle className="flex items-center gap-2">
+            <span
+              aria-hidden
+              className="flex size-8 items-center justify-center rounded-xl bg-marca-violeta/20"
+            >
+              <PlugIcon className="size-4 text-marca-violeta" />
+            </span>
+            Conexión Meta
+          </CardTitle>
+          {sinVincular > 0 ? (
+            <span className="rounded-full bg-marca-naranja/15 px-2.5 py-0.5 text-xs font-semibold text-marca-naranja">
+              {sinVincular === 1
+                ? '1 cliente sin vincular'
+                : `${sinVincular} clientes sin vincular`}
+            </span>
+          ) : null}
+        </CardHeader>
+        <CardContent>
+          {listaClientesMeta.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              Da de alta clientes para vincular sus cuentas publicitarias de
+              Meta.
+            </p>
+          ) : (
+            <ul className="flex flex-col">
+              {listaClientesMeta.map((cliente) => (
+                <li key={cliente.id}>
+                  <Link
+                    href={`/agencia/clientes/${cliente.id}`}
+                    className="-mx-2 flex items-center justify-between gap-3 rounded-lg px-2 py-2.5 text-sm outline-none transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/60"
+                  >
+                    <span className="truncate font-medium">
+                      {cliente.nombre_negocio}
+                    </span>
+                    {cliente.meta_ad_account_id ? (
+                      <span className="bg-marca inline-flex h-5 shrink-0 items-center gap-1.5 rounded-4xl px-2 text-xs font-medium whitespace-nowrap text-white">
+                        <span
+                          aria-hidden
+                          className="size-1.5 rounded-full bg-current"
+                        />
+                        Conectado
+                      </span>
+                    ) : (
+                      <span className="flex shrink-0 items-center gap-0.5 text-xs font-semibold text-marca-violeta">
+                        Vincular cuenta
+                        <ChevronRightIcon aria-hidden className="size-3.5" />
+                      </span>
+                    )}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="animate-in fade-in slide-in-from-bottom-3 fill-mode-both grid gap-6 delay-200 duration-500 lg:grid-cols-5">
         <Card className="lg:col-span-3">
