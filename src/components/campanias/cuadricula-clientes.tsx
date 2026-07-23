@@ -13,6 +13,10 @@ import {
 import { toast } from 'sonner'
 
 import { cambiarEstadoCampania } from '@/app/(app)/agencia/campanias/actions'
+import {
+  DashboardCliente,
+  type DatosDashboard,
+} from '@/components/campanias/dashboard-cliente'
 import { AvisoMetaDialog } from '@/components/campanias/panel-campanias'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -52,6 +56,8 @@ export type ClienteSemaforo = {
   recientes: CampaniaSemaforo[]
   /** El resto (histórico), para "Ver todas (N)". */
   historicas: CampaniaSemaforo[]
+  /** KPIs, serie de 30 días y presupuesto — calculados en el server. */
+  dashboard: DatosDashboard
 }
 
 const COLOR_PUNTO: Record<Salud, string> = {
@@ -188,6 +194,18 @@ function DetalleCliente({
         </Button>
         <p className="truncate text-sm font-semibold">{cliente.nombre}</p>
       </div>
+
+      <DashboardCliente
+        clienteId={cliente.id}
+        datos={cliente.dashboard}
+        activas={cliente.activas}
+        miniSemaforo={{
+          verdes: cliente.verdes,
+          ambars: cliente.ambars,
+          rojas: cliente.rojas,
+        }}
+        recientes={cliente.recientes}
+      />
 
       {cliente.recientes.length === 0 ? (
         <Card className="items-center py-10 text-center">
