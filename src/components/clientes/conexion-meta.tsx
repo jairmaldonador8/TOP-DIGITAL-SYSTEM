@@ -48,6 +48,7 @@ export function ConexionMeta({
   metaAdAccountId: string | null
 }) {
   const [cuentas, setCuentas] = React.useState<Cuenta[] | null>(null)
+  const [abierto, setAbierto] = React.useState(false)
   const [errorLista, setErrorLista] = React.useState<string | null>(null)
   const [confirmando, setConfirmando] = React.useState(false)
   const [pendiente, iniciarTransicion] = React.useTransition()
@@ -63,6 +64,9 @@ export function ConexionMeta({
         )
       } else {
         setCuentas(resultado.cuentas)
+        // La lista se abre sola: si solo cambiara el botón a «Elegir
+        // cuenta», parecería que el clic no hizo nada.
+        setAbierto(true)
       }
     } else {
       // El mensaje se queda en la card: el dueño debe ver el problema
@@ -173,7 +177,7 @@ export function ConexionMeta({
               </Button>
             ) : (
               <div className="flex items-center gap-1.5">
-                <DropdownMenu>
+                <DropdownMenu open={abierto} onOpenChange={setAbierto}>
                   <DropdownMenuTrigger
                     render={
                       <Button
