@@ -9,6 +9,7 @@ import {
   type ResultadoAccion,
 } from '@/lib/acciones'
 import { ESTADOS_CAMPANIA, type EstadoCampania } from '@/lib/campanias/tipos'
+import { sincronizarMeta } from '@/lib/meta/sync'
 import { createClient } from '@/lib/supabase/server'
 
 const CAMPOS_CAMPANIA = [
@@ -136,4 +137,22 @@ export async function cambiarEstadoCampania(
 
   revalidatePath('/agencia', 'layout')
   return { ok: true }
+}
+
+export type ResultadoSyncAccion =
+  | { ok: true; campaniasActualizadas: number; errores: string[] }
+  | { ok: false; mensaje: string }
+
+/** Dispara la misma sincronizacion que el cron, a peticion del dueno. */
+export async function sincronizarAhora(): Promise<ResultadoSyncAccion> {
+  if (!(await esAdmin())) {
+    return { ok: false, mensaje: 'No tienes permiso para realizar esta acción' }
+  }
+  const resumen = await sincronizarMeta('manual')
+  revalidatePath('/agencia', 'layout')
+  return {
+    ok: true,
+    campaniasActualizadas: resumen.campaniasActualizadas,
+    errores: resumen.errores.map((e) => e.mensaje),
+  }
 }
