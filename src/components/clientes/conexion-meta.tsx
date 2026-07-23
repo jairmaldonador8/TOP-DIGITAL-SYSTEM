@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { ChevronDownIcon, PlugIcon } from 'lucide-react'
+import { ChevronDownIcon, PlugIcon, RefreshCwIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
 import {
@@ -52,25 +52,29 @@ export function ConexionMeta({
   const [confirmando, setConfirmando] = React.useState(false)
   const [pendiente, iniciarTransicion] = React.useTransition()
 
-  const cargarCuentas = () => {
-    iniciarTransicion(async () => {
-      const resultado = await listarCuentasMeta()
-      if (resultado.ok) {
-        setErrorLista(null)
-        if (resultado.cuentas.length === 0) {
-          setErrorLista(
-            'El usuario de sistema no tiene cuentas publicitarias asignadas en Meta.'
-          )
-        } else {
-          setCuentas(resultado.cuentas)
-        }
+  const cargar = async () => {
+    const resultado = await listarCuentasMeta()
+    if (resultado.ok) {
+      setErrorLista(null)
+      if (resultado.cuentas.length === 0) {
+        setCuentas(null)
+        setErrorLista(
+          'El usuario de sistema no tiene cuentas publicitarias asignadas en Meta.'
+        )
       } else {
-        // El mensaje se queda en la card: el dueño debe ver el problema
-        // de conexión, no solo un toast que desaparece.
-        setErrorLista(resultado.mensaje)
-        toast.error(resultado.mensaje)
+        setCuentas(resultado.cuentas)
       }
-    })
+    } else {
+      // El mensaje se queda en la card: el dueño debe ver el problema
+      // de conexión, no solo un toast que desaparece.
+      setCuentas(null)
+      setErrorLista(resultado.mensaje)
+      toast.error(resultado.mensaje)
+    }
+  }
+
+  const cargarCuentas = () => {
+    iniciarTransicion(cargar)
   }
 
   const vincular = (cuenta: Cuenta) => {
@@ -81,6 +85,9 @@ export function ConexionMeta({
         setCuentas(null)
       } else {
         toast.error(resultado.mensaje)
+        // La lista pudo quedar obsoleta (p. ej. la cuenta ya se vinculó a
+        // otro cliente): se recarga para no volver a ofrecerla.
+        await cargar()
       }
     })
   }
@@ -165,39 +172,54 @@ export function ConexionMeta({
                 {pendiente ? 'Cargando cuentas…' : 'Vincular cuenta'}
               </Button>
             ) : (
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  render={
-                    <Button
-                      variant="outline"
-                      className="w-fit"
-                      disabled={pendiente}
-                    />
-                  }
+              <div className="flex items-center gap-1.5">
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    render={
+                      <Button
+                        variant="outline"
+                        className="w-fit"
+                        disabled={pendiente}
+                      />
+                    }
+                  >
+                    {pendiente ? 'Vinculando…' : 'Elegir cuenta'}
+                    <ChevronDownIcon data-icon="inline-end" aria-hidden />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="start"
+                    sideOffset={4}
+                    className="min-w-64"
+                  >
+                    {cuentas.map((cuenta) => (
+                      <DropdownMenuItem
+                        key={cuenta.id}
+                        disabled={pendiente || !cuenta.activa}
+                        onClick={() => vincular(cuenta)}
+                      >
+                        <span className="flex min-w-0 flex-col">
+                          <span className="truncate">
+                            {cuenta.nombre}
+                            {cuenta.activa ? '' : ' (inactiva)'}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {cuenta.numero}
+                          </span>
+                        </span>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Actualizar cuentas"
+                  disabled={pendiente}
+                  onClick={cargarCuentas}
                 >
-                  {pendiente ? 'Vinculando…' : 'Elegir cuenta'}
-                  <ChevronDownIcon data-icon="inline-end" aria-hidden />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" sideOffset={4}>
-                  {cuentas.map((cuenta) => (
-                    <DropdownMenuItem
-                      key={cuenta.id}
-                      disabled={pendiente || !cuenta.activa}
-                      onClick={() => vincular(cuenta)}
-                    >
-                      <span className="flex min-w-0 flex-col">
-                        <span className="truncate">
-                          {cuenta.nombre}
-                          {cuenta.activa ? '' : ' (inactiva)'}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {cuenta.numero}
-                        </span>
-                      </span>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  <RefreshCwIcon aria-hidden />
+                </Button>
+              </div>
             )}
           </div>
         )}
