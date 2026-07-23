@@ -16,7 +16,8 @@ import { formatoFechaCorta, formatoMoneda } from '@/lib/formato'
 const ANCHO = 640
 const ALTO_CONV = 140
 const ALTO_GASTO = 56
-const MARGEN = { arriba: 10, abajo: 4, izq: 8, der: 8 }
+// arriba: 22 deja aire para la etiqueta del pico (11px + offset) sin recorte.
+const MARGEN = { arriba: 22, abajo: 4, izq: 8, der: 8 }
 const COLOR_CONV = '#f0338d'
 const COLOR_GASTO = '#ea580c'
 

@@ -42,11 +42,13 @@ describe('serieDiaria', () => {
 describe('deltasSemana', () => {
   it('compara los ultimos 7 dias contra los 7 anteriores', () => {
     const filas = [
-      // Semana anterior (07-09 .. 07-16): 10 conv, $500
-      fila('2026-07-10', 250, 5),
-      fila('2026-07-15', 250, 5),
-      // Semana actual (07-17 .. 07-23): 20 conv, $600
-      fila('2026-07-18', 300, 12),
+      // Fuera de ambas ventanas: no debe contar.
+      fila('2026-07-09', 9999, 99),
+      // Semana anterior (07-10 .. 07-16), bordes incluidos: 10 conv, $500
+      fila('2026-07-10', 200, 4),
+      fila('2026-07-16', 300, 6),
+      // Semana actual (07-17 .. 07-23), bordes incluidos: 20 conv, $600
+      fila('2026-07-17', 300, 12),
       fila('2026-07-23', 300, 8),
     ]
 

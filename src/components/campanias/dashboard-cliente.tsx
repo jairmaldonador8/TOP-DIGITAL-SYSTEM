@@ -127,7 +127,7 @@ function TileKpi({
   delta: number | null
   subirEsBueno: boolean
 }) {
-  const bueno = delta !== null && (delta >= 0) === subirEsBueno
+  const bueno = delta !== null && (delta > 0) === subirEsBueno
   return (
     <Card className="gap-1 px-4 py-4">
       <p className="text-xs text-muted-foreground">{etiqueta}</p>
@@ -136,7 +136,12 @@ function TileKpi({
         <p
           className={cn(
             'flex items-center gap-0.5 text-xs font-semibold',
-            bueno ? 'text-emerald-500' : 'text-red-500'
+            // Sin cambio (0%): neutral, ni bueno ni malo.
+            delta === 0
+              ? 'text-muted-foreground'
+              : bueno
+                ? 'text-emerald-500'
+                : 'text-red-500'
           )}
         >
           {delta >= 0 ? (

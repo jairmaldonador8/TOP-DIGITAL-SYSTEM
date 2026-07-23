@@ -177,17 +177,6 @@ async function sincronizarCliente(
       date_preset: 'last_7d',
     }
   )
-  // Serie diaria del dashboard: 30 dias desglosados dia por dia.
-  const insightsDiarios = await obtenerTodos<InsightCampania>(
-    `/${cuenta}/insights`,
-    {
-      level: 'campaign',
-      fields: 'campaign_id,spend,actions',
-      date_preset: 'last_30d',
-      time_increment: '1',
-    }
-  )
-
   const { filas, gastos, gastos7d } = prepararCampanias(
     cliente.id,
     recibidas,
@@ -216,7 +205,18 @@ async function sincronizarCliente(
     .upsert(finanzas, { onConflict: 'campania_id' })
   if (errorFinanzas) throw new Error(errorFinanzas.message)
 
-  // Serie diaria del dashboard (idempotente por campania+fecha).
+  // Serie diaria del dashboard: se pide y guarda AL FINAL, despues de que
+  // campanias y finanzas ya quedaron — si esta llamada falla, el semaforo
+  // del cliente no pierde su corrida (idempotente por campania+fecha).
+  const insightsDiarios = await obtenerTodos<InsightCampania>(
+    `/${cuenta}/insights`,
+    {
+      level: 'campaign',
+      fields: 'campaign_id,spend,actions',
+      date_preset: 'last_30d',
+      time_increment: '1',
+    }
+  )
   const idPorMeta = new Map(
     (upsertadas ?? []).map((fila) => [fila.meta_campaign_id, fila.id])
   )
