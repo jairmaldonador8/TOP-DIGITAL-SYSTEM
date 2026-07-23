@@ -2,6 +2,7 @@ import Link from 'next/link'
 import {
   ArrowRight,
   CalendarClock,
+  Inbox,
   MessageCircle,
   Sparkles,
   UserRoundSearch,
@@ -13,6 +14,7 @@ const ICONOS = {
   chat: MessageCircle,
   tarea: CalendarClock,
   lead: UserRoundSearch,
+  entrega: Inbox,
 } as const
 
 export type PuntoAtencion = {

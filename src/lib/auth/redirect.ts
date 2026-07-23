@@ -51,6 +51,7 @@ export function rolPuedeAcceder(rol: Rol, pathname: string): boolean {
  * - Sin sesión o sin rol válido → /login
  * - admin → /agencia
  * - cliente → /portal
+ * - equipo → /equipo
  */
 export function destinoPorRol(
   claims: ClaimsConRol | null | undefined

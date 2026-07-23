@@ -59,6 +59,6 @@ export async function avanzarEncargo(
   }
 
   revalidatePath('/equipo', 'layout')
-  revalidatePath('/agencia/equipo')
+  revalidatePath('/agencia', 'layout')
   return { ok: true }
 }

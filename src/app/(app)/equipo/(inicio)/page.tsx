@@ -102,7 +102,7 @@ export default async function PaginaEquipo() {
   ).length
 
   const stats = [
-    { etiqueta: 'Pendientes', valor: conteo('pendiente') + conteo('cambios') },
+    { etiqueta: 'Por hacer', valor: conteo('pendiente') + conteo('cambios') },
     { etiqueta: 'En progreso', valor: conteo('en_progreso') },
     { etiqueta: 'En revisión', valor: conteo('entregado') },
     { etiqueta: 'Aprobados del mes', valor: aprobadosMes },

@@ -156,6 +156,14 @@ tablas nuevas usan enums recién creados, no `rol_usuario`), como ya se hizo en
 ## 6. Fuera de alcance (Fase 1)
 
 - Chat dueño↔trabajador (Fase 2, spec propio).
+- `editarEncargo` (UI y action de edición del dueño) — **diferido a Fase 2**
+  (decisión post-review: v1 cubre crear/avanzar/revisar; correcciones se
+  comunican por el comentario de cambios).
+- Extensión de `rls.integration.test.ts` con los casos de equipo — **diferida**:
+  la suite de integración depende de fixtures seed (usuario demo) eliminados
+  al cargar los clientes reales; se rehabilitará como chore aparte. Las
+  defensas de la base quedaron verificadas en vivo (simulación SQL del
+  trigger/política, review final).
 - Adjuntos/archivos en encargos (las referencias van como links en la
   descripción).
 - Notificaciones push/email; campanita con historial para equipo.

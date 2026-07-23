@@ -94,6 +94,7 @@ export default async function PaginaAgencia() {
     leads14dias,
     metasClientes,
     clientesMeta,
+    entregasEquipo,
   ] = await Promise.all([
     supabase.from('leads').select('id, etapa').gte('created_at', desde),
     supabase
@@ -162,6 +163,10 @@ export default async function PaginaAgencia() {
       .eq('es_agencia', false)
       .eq('estado', 'activo')
       .order('nombre_negocio'),
+    supabase
+      .from('encargos')
+      .select('id', { count: 'exact', head: true })
+      .eq('estado', 'entregado'),
   ])
 
   // ===== Métricas y tendencias =====
@@ -222,6 +227,20 @@ export default async function PaginaAgencia() {
       titulo: vencidas === 1 ? '1 tarea vencida' : `${vencidas} tareas vencidas`,
       detalle: 'Se pasó su fecha límite',
       href: '/agencia/tareas',
+    })
+  }
+  const porRevisar = entregasEquipo.count ?? 0
+  if (porRevisar > 0) {
+    puntos.push({
+      id: 'equipo',
+      icono: 'entrega',
+      cantidad: porRevisar,
+      titulo:
+        porRevisar === 1
+          ? '1 entrega por revisar'
+          : `${porRevisar} entregas por revisar`,
+      detalle: 'Tu equipo espera tu visto bueno',
+      href: '/agencia/equipo',
     })
   }
   const sinAtender = leadsSinAtender.count ?? 0
