@@ -71,6 +71,7 @@ const ETIQUETA_SALUD: Record<Salud, string> = {
 function Punto({ salud }: { salud: Salud }) {
   return (
     <span
+      role="img"
       aria-label={ETIQUETA_SALUD[salud]}
       title={ETIQUETA_SALUD[salud]}
       className={cn('size-2.5 shrink-0 rounded-full', COLOR_PUNTO[salud])}

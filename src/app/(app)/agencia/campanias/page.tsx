@@ -63,8 +63,10 @@ export default async function PaginaCampaniasAgencia() {
       .maybeSingle(),
   ])
 
-  if (campanias.error) {
-    console.error('Error al cargar campañas:', campanias.error)
+  // Sin finanzas el semáforo mentiría (todo gris): también es error fatal.
+  const errorCarga = campanias.error ?? finanzas.error ?? clientesRes.error
+  if (errorCarga) {
+    console.error('Error al cargar campañas:', errorCarga)
   }
 
   const filasCampanias = (campanias.data ?? []) as FilaCampaniaDb[]
@@ -123,7 +125,10 @@ export default async function PaginaCampaniasAgencia() {
       })
 
       const ordenadas = [...evaluadas].sort(
-        (a, b) => ORDEN_SALUD[a.salud] - ORDEN_SALUD[b.salud]
+        (a, b) =>
+          ORDEN_SALUD[a.salud] - ORDEN_SALUD[b.salud] ||
+          b.gasto7d - a.gasto7d ||
+          a.nombre.localeCompare(b.nombre, 'es')
       )
       const esReciente = (campania: CampaniaSemaforo) =>
         campania.estado === 'activa' ||
@@ -170,7 +175,7 @@ export default async function PaginaCampaniasAgencia() {
 
       <BotonSincronizar ultimaSync={ultimaSync} />
 
-      {campanias.error ? (
+      {errorCarga ? (
         <Card className="items-center py-10 text-center">
           <p className="max-w-sm text-sm text-destructive" role="alert">
             No se pudieron cargar las campañas. Recarga la página para
