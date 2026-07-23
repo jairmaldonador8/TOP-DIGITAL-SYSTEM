@@ -6,7 +6,7 @@
  * destino es /login (el proxy además cierra esa sesión).
  */
 
-export type Rol = 'admin' | 'cliente'
+export type Rol = 'admin' | 'cliente' | 'equipo'
 
 /**
  * Forma mínima de los claims del JWT que necesitamos. El índice permite
@@ -20,6 +20,7 @@ export type ClaimsConRol = {
 export const AREA_POR_ROL: Record<Rol, string> = {
   admin: '/agencia',
   cliente: '/portal',
+  equipo: '/equipo',
 }
 
 /**
@@ -30,7 +31,7 @@ export function rolDesdeClaims(
   claims: ClaimsConRol | null | undefined
 ): Rol | null {
   const rol = claims?.user_role
-  return rol === 'admin' || rol === 'cliente' ? rol : null
+  return rol === 'admin' || rol === 'cliente' || rol === 'equipo' ? rol : null
 }
 
 /**

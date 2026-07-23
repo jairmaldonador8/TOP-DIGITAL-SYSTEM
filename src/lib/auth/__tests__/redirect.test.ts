@@ -24,6 +24,10 @@ describe('destinoPorRol', () => {
     expect(destinoPorRol({ user_role: 'cliente' })).toBe('/portal')
   })
 
+  it('devuelve /equipo cuando user_role es equipo', () => {
+    expect(destinoPorRol({ user_role: 'equipo' })).toBe('/equipo')
+  })
+
   it('devuelve /login cuando falta user_role (sesión sin rol es inválida)', () => {
     expect(destinoPorRol({})).toBe('/login')
   })
@@ -39,9 +43,10 @@ describe('rolDesdeClaims', () => {
     expect(rolDesdeClaims(undefined)).toBeNull()
   })
 
-  it('devuelve el rol cuando es admin o cliente', () => {
+  it('devuelve el rol cuando es admin, cliente o equipo', () => {
     expect(rolDesdeClaims({ user_role: 'admin' })).toBe('admin')
     expect(rolDesdeClaims({ user_role: 'cliente' })).toBe('cliente')
+    expect(rolDesdeClaims({ user_role: 'equipo' })).toBe('equipo')
   })
 
   it('devuelve null cuando user_role falta o es desconocido', () => {
@@ -66,9 +71,22 @@ describe('rolPuedeAcceder', () => {
     expect(rolPuedeAcceder('cliente', '/agencia/clientes')).toBe(false)
   })
 
-  it('rutas fuera de las áreas protegidas son accesibles para ambos roles', () => {
+  it('equipo accede a /equipo pero no a /agencia ni /portal', () => {
+    expect(rolPuedeAcceder('equipo', '/equipo')).toBe(true)
+    expect(rolPuedeAcceder('equipo', '/equipo/encargos')).toBe(true)
+    expect(rolPuedeAcceder('equipo', '/agencia')).toBe(false)
+    expect(rolPuedeAcceder('equipo', '/portal')).toBe(false)
+  })
+
+  it('admin y cliente no acceden a /equipo', () => {
+    expect(rolPuedeAcceder('admin', '/equipo')).toBe(false)
+    expect(rolPuedeAcceder('cliente', '/equipo')).toBe(false)
+  })
+
+  it('rutas fuera de las áreas protegidas son accesibles para todos los roles', () => {
     expect(rolPuedeAcceder('admin', '/')).toBe(true)
     expect(rolPuedeAcceder('cliente', '/')).toBe(true)
+    expect(rolPuedeAcceder('equipo', '/')).toBe(true)
   })
 
   it('no confunde prefijos parciales (ej. /portales)', () => {
@@ -78,8 +96,9 @@ describe('rolPuedeAcceder', () => {
 })
 
 describe('AREA_POR_ROL', () => {
-  it('mapea admin a /agencia y cliente a /portal', () => {
+  it('mapea admin a /agencia, cliente a /portal y equipo a /equipo', () => {
     expect(AREA_POR_ROL.admin).toBe('/agencia')
     expect(AREA_POR_ROL.cliente).toBe('/portal')
+    expect(AREA_POR_ROL.equipo).toBe('/equipo')
   })
 })
