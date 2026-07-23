@@ -60,6 +60,54 @@ function urlAdsManager(cuentaMeta: string): string {
   return `https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=${cuentaMeta.replace(/^act_/, '')}`
 }
 
+/**
+ * Aviso para campañas sincronizadas: su estado es solo lectura aquí
+ * (pausar, archivar o restaurar se revertiría en la próxima
+ * sincronización); el cambio real se hace en el Ads Manager.
+ */
+function AvisoMetaDialog({
+  abierto,
+  onOpenChange,
+  cuentaMeta,
+}: {
+  abierto: boolean
+  onOpenChange: (abierto: boolean) => void
+  cuentaMeta: string | null
+}) {
+  return (
+    <AlertDialog open={abierto} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Se administra desde Meta</AlertDialogTitle>
+          <AlertDialogDescription>
+            Esta campaña se administra desde Meta Ads Manager; los cambios de
+            estado hechos aquí se revertirían en la próxima sincronización.
+            Haz el cambio directamente en el Ads Manager.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogClose render={<Button variant="outline" />}>
+            Entendido
+          </AlertDialogClose>
+          {cuentaMeta ? (
+            <Button
+              render={
+                <a
+                  href={urlAdsManager(cuentaMeta)}
+                  target="_blank"
+                  rel="noreferrer"
+                />
+              }
+            >
+              Abrir Ads Manager
+            </Button>
+          ) : null}
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+}
+
 /** "Deshacer" del toast al archivar: regresa la campaña a su estado. */
 async function desarchivar(id: string, estado: Exclude<EstadoCampania, 'archivada'>) {
   const resultado = await cambiarEstadoCampania(id, estado)
@@ -300,7 +348,12 @@ function TarjetaCampania({
                 {activa ? <PauseIcon aria-hidden /> : <PlayIcon aria-hidden />}
                 {activa ? 'Pausar' : 'Reanudar'}
               </DropdownMenuItem>
-              <DropdownMenuItem disabled={pendiente} onClick={archivar}>
+              <DropdownMenuItem
+                disabled={pendiente}
+                onClick={() =>
+                  sincronizada ? setAvisoMeta(true) : archivar()
+                }
+              >
                 <ArchiveIcon aria-hidden />
                 Archivar
               </DropdownMenuItem>
@@ -358,36 +411,11 @@ function TarjetaCampania({
       </div>
 
       {sincronizada ? (
-        <AlertDialog open={avisoMeta} onOpenChange={setAvisoMeta}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Se administra desde Meta</AlertDialogTitle>
-              <AlertDialogDescription>
-                Esta campaña se administra desde Meta Ads Manager; pausarla
-                aquí no la detiene en Meta. Haz el cambio directamente en el
-                Ads Manager.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogClose render={<Button variant="outline" />}>
-                Entendido
-              </AlertDialogClose>
-              {campania.cuentaMeta ? (
-                <Button
-                  render={
-                    <a
-                      href={urlAdsManager(campania.cuentaMeta)}
-                      target="_blank"
-                      rel="noreferrer"
-                    />
-                  }
-                >
-                  Abrir Ads Manager
-                </Button>
-              ) : null}
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <AvisoMetaDialog
+          abierto={avisoMeta}
+          onOpenChange={setAvisoMeta}
+          cuentaMeta={campania.cuentaMeta}
+        />
       ) : null}
     </Card>
   )
@@ -396,9 +424,16 @@ function TarjetaCampania({
 function Archivadas({ campanias }: { campanias: CampaniaView[] }) {
   const [abierto, setAbierto] = React.useState(false)
   const [restaurando, setRestaurando] = React.useState<string | null>(null)
+  const [avisoMeta, setAvisoMeta] = React.useState<CampaniaView | null>(null)
 
   const restaurar = async (campania: CampaniaView) => {
     if (restaurando) return
+    // Sincronizada: el estado es de Meta; restaurarla aquí se revertiría
+    // en la próxima sincronización.
+    if (campania.metaCampaignId != null) {
+      setAvisoMeta(campania)
+      return
+    }
     setRestaurando(campania.id)
     // Vuelve pausada: la agencia decide después si la reanuda.
     const resultado = await cambiarEstadoCampania(campania.id, 'pausada')
@@ -474,6 +509,14 @@ function Archivadas({ campanias }: { campanias: CampaniaView[] }) {
           </Card>
         </div>
       </div>
+
+      <AvisoMetaDialog
+        abierto={avisoMeta !== null}
+        onOpenChange={(sigueAbierto) => {
+          if (!sigueAbierto) setAvisoMeta(null)
+        }}
+        cuentaMeta={avisoMeta?.cuentaMeta ?? null}
+      />
     </section>
   )
 }
