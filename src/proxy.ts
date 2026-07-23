@@ -88,11 +88,16 @@ export const config = {
      *   SIN cookies: si pasara por el proxy, redirigiría a /login y la
      *   instalación como app fallaría)
      * - imágenes (svg, png, jpg, jpeg, gif, webp)
+     * - api/cron (el cron de Vercel manda `Authorization: Bearer
+     *   <CRON_SECRET>` sin cookies de sesión; el propio route handler
+     *   valida ese secreto. Vercel cron NO sigue redirects, así que si
+     *   esta ruta pasara por el proxy moriría en un 307 silencioso a
+     *   /login)
      *
-     * NOTA: las rutas /api NO están excluidas todavía; si se agregan
-     * route handlers (p. ej. webhooks públicos) habrá que ajustar este
-     * matcher o manejarlos explícitamente dentro del proxy.
+     * El resto de /api SÍ pasa por el proxy; cualquier route handler
+     * nuevo que no deba llevar sesión (p. ej. otro webhook público) hay
+     * que agregarlo explícitamente aquí.
      */
-    '/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|api/cron|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
