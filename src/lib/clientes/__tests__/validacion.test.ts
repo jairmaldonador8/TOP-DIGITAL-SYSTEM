@@ -15,6 +15,8 @@ describe('validarCliente', () => {
         presupuesto_ads: 0,
         meta_facturacion: 0,
         notas: null,
+        giro: null,
+        descripcion_publica: null,
       },
     })
   })
