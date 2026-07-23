@@ -34,6 +34,8 @@ export type ClienteEditable = {
   presupuesto_ads: number
   meta_facturacion: number
   notas: string | null
+  giro: string | null
+  descripcion_publica: string | null
 }
 
 /**
@@ -221,6 +223,36 @@ function FormularioCliente({
           defaultValue={inicial('notas', cliente?.notas)}
         />
       </Campo>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Campo
+          id="giro"
+          etiqueta="Giro"
+          descripcion="Visible para el equipo"
+          error={errores.giro}
+        >
+          <Input
+            id="giro"
+            name="giro"
+            placeholder="Taquería, inmobiliaria, salón…"
+            defaultValue={inicial('giro', cliente?.giro)}
+          />
+        </Campo>
+        <Campo
+          id="descripcion_publica"
+          etiqueta="Descripción para el equipo"
+          descripcion="Sin datos sensibles"
+          error={errores.descripcion_publica}
+        >
+          <Textarea
+            id="descripcion_publica"
+            name="descripcion_publica"
+            rows={2}
+            placeholder="Estilo de la marca, tono, qué vende…"
+            defaultValue={inicial('descripcion_publica', cliente?.descripcion_publica)}
+          />
+        </Campo>
+      </div>
 
       {errores._form ? (
         <p role="alert" className="text-sm text-destructive">

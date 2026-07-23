@@ -18,6 +18,8 @@ export type DatosCliente = {
   presupuesto_ads: number
   meta_facturacion: number
   notas: string | null
+  giro: string | null
+  descripcion_publica: string | null
 }
 
 export type DatosUsuarioCliente = {
@@ -92,6 +94,8 @@ export function validarCliente(
       presupuesto_ads: presupuesto.valido ? presupuesto.numero : 0,
       meta_facturacion: meta.valido ? meta.numero : 0,
       notas: texto(entrada.notas),
+      giro: texto(entrada.giro),
+      descripcion_publica: texto(entrada.descripcion_publica),
     },
   }
 }

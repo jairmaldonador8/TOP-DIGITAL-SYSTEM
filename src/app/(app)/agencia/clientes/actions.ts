@@ -23,6 +23,8 @@ const CAMPOS_CLIENTE = [
   'presupuesto_ads',
   'meta_facturacion',
   'notas',
+  'giro',
+  'descripcion_publica',
 ]
 
 export async function crearCliente(

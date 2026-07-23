@@ -103,7 +103,7 @@ export default async function PaginaCliente({
   const { data, error: errorCliente } = await supabase
     .from('clientes')
     .select(
-      'id, nombre_negocio, contacto_nombre, email, telefono, presupuesto_ads, meta_facturacion, estado, es_agencia, meta_ad_account_id, notas, created_at'
+      'id, nombre_negocio, contacto_nombre, email, telefono, presupuesto_ads, meta_facturacion, estado, es_agencia, meta_ad_account_id, notas, giro, descripcion_publica, created_at'
     )
     .eq('id', id)
     .maybeSingle()

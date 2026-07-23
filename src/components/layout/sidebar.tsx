@@ -13,6 +13,7 @@ import {
   MessagesSquare,
   Target,
   Users,
+  UsersRound,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -41,6 +42,7 @@ const ICONOS = {
   leads: Target,
   chats: MessagesSquare,
   chat: MessageCircle,
+  equipo: UsersRound,
   reportes: ChartColumn,
 } satisfies Record<string, LucideIcon>
 
