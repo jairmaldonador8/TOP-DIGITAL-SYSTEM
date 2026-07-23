@@ -12,10 +12,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 
-import {
-  cambiarEstadoCampania,
-  type EstadoCampania,
-} from '@/app/(app)/agencia/campanias/actions'
+import { cambiarEstadoCampania } from '@/app/(app)/agencia/campanias/actions'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -24,6 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import type { EstadoCampania } from '@/lib/campanias/tipos'
 import { formatoFechaCorta, formatoMoneda } from '@/lib/formato'
 import { cn } from '@/lib/utils'
 

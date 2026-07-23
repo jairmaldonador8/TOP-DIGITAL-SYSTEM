@@ -8,6 +8,7 @@ import {
   valoresDe,
   type ResultadoAccion,
 } from '@/lib/acciones'
+import { ESTADOS_CAMPANIA, type EstadoCampania } from '@/lib/campanias/tipos'
 import { createClient } from '@/lib/supabase/server'
 
 const CAMPOS_CAMPANIA = [
@@ -104,9 +105,6 @@ export async function crearCampania(
 }
 
 export type ResultadoCampania = { ok: true } | { ok: false; mensaje: string }
-
-const ESTADOS_CAMPANIA = ['activa', 'pausada', 'archivada'] as const
-export type EstadoCampania = (typeof ESTADOS_CAMPANIA)[number]
 
 /**
  * Cambia el estado de una campaña: pausar/reanudar, archivar (sale del

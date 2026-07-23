@@ -2,9 +2,9 @@
  * Funciones puras que traducen respuestas de la Graph API al dominio.
  * Ver .claude/skills/meta-marketing-api/SKILL.md para el porque de cada regla.
  */
-import type { AccionInsight } from './tipos'
+import type { EstadoCampania } from '@/lib/campanias/tipos'
 
-export type EstadoCampania = 'activa' | 'pausada' | 'archivada'
+import type { AccionInsight } from './tipos'
 
 /** Columna "Resultados" de Ads Manager para campanas de clic a WhatsApp. */
 const ACCION_CONVERSACIONES =
