@@ -104,6 +104,39 @@ export function idsParaArchivar(
     .map((e) => e.id)
 }
 
+export type MetricaDiaria = {
+  campania_id: string
+  cliente_id: string
+  fecha: string
+  gasto: number
+  conversaciones: number
+}
+
+/**
+ * Filas diarias (ventana de 30 dias, time_increment=1) listas para upsert.
+ * Solo campanias presentes en idPorMeta (el mapa meta_campaign_id → id
+ * interno del upsert de campanias); filas sin fecha se descartan.
+ */
+export function prepararMetricasDiarias(
+  idPorMeta: Map<string, string>,
+  clienteId: string,
+  insightsDiarios: InsightCampania[]
+): MetricaDiaria[] {
+  const filas: MetricaDiaria[] = []
+  for (const insight of insightsDiarios) {
+    const campaniaId = idPorMeta.get(insight.campaign_id)
+    if (!campaniaId || !insight.date_start) continue
+    filas.push({
+      campania_id: campaniaId,
+      cliente_id: clienteId,
+      fecha: insight.date_start,
+      gasto: gastoDe(insight.spend),
+      conversaciones: conversacionesDe(insight.actions),
+    })
+  }
+  return filas
+}
+
 type AdminClient = ReturnType<typeof createAdminClient>
 type ClienteVinculado = { id: string; meta_ad_account_id: string }
 
@@ -144,6 +177,16 @@ async function sincronizarCliente(
       date_preset: 'last_7d',
     }
   )
+  // Serie diaria del dashboard: 30 dias desglosados dia por dia.
+  const insightsDiarios = await obtenerTodos<InsightCampania>(
+    `/${cuenta}/insights`,
+    {
+      level: 'campaign',
+      fields: 'campaign_id,spend,actions',
+      date_preset: 'last_30d',
+      time_increment: '1',
+    }
+  )
 
   const { filas, gastos, gastos7d } = prepararCampanias(
     cliente.id,
@@ -172,6 +215,18 @@ async function sincronizarCliente(
     .from('campania_finanzas')
     .upsert(finanzas, { onConflict: 'campania_id' })
   if (errorFinanzas) throw new Error(errorFinanzas.message)
+
+  // Serie diaria del dashboard (idempotente por campania+fecha).
+  const idPorMeta = new Map(
+    (upsertadas ?? []).map((fila) => [fila.meta_campaign_id, fila.id])
+  )
+  const diarias = prepararMetricasDiarias(idPorMeta, cliente.id, insightsDiarios)
+  if (diarias.length > 0) {
+    const { error: errorDiarias } = await supabase
+      .from('campania_metricas_diarias')
+      .upsert(diarias, { onConflict: 'campania_id,fecha' })
+    if (errorDiarias) throw new Error(errorDiarias.message)
+  }
 
   return { actualizadas: filas.length, recibidas }
 }
@@ -268,7 +323,23 @@ export async function sincronizarMeta(
       }
     }
 
-    // 4. Cerrar la bitacora.
+    // 4. Retencion de la serie diaria: una vez por corrida (paso global,
+    // no de un cliente). Mantiene la tabla acotada a ~90 dias.
+    const corte = new Date(Date.now() - 90 * 86400000)
+      .toISOString()
+      .slice(0, 10)
+    const { error: errorPoda } = await supabase
+      .from('campania_metricas_diarias')
+      .delete()
+      .lt('fecha', corte)
+    if (errorPoda) {
+      errores.push({
+        cliente: null,
+        mensaje: `No se pudo podar la serie diaria: ${errorPoda.message}`,
+      })
+    }
+
+    // 5. Cerrar la bitacora.
     if (corrida) {
       const { error: errorCierre } = await supabase
         .from('sync_runs')

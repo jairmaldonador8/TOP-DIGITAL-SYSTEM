@@ -22,6 +22,8 @@ export type InsightCampania = {
   campaign_id: string
   spend?: string
   actions?: AccionInsight[]
+  /** Presente con time_increment=1: la fecha del dia (YYYY-MM-DD). */
+  date_start?: string
 }
 
 export type PaginaGraph<T> = {

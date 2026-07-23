@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
 import type { CampaniaMeta, InsightCampania } from '../tipos'
-import { idsParaArchivar, prepararCampanias } from '../sync'
+import {
+  idsParaArchivar,
+  prepararCampanias,
+  prepararMetricasDiarias,
+} from '../sync'
 
 const AHORA = '2026-07-22T11:30:00.000Z'
 
@@ -177,6 +181,57 @@ describe('prepararCampanias', () => {
     const { gastos } = prepararCampanias('cli-1', campanias, insights, [], AHORA)
 
     expect(gastos.get('9')).toBe(581.11)
+  })
+})
+
+describe('prepararMetricasDiarias', () => {
+  const idPorMeta = new Map([
+    ['111', 'db-1'],
+    ['222', 'db-2'],
+  ])
+  const CONVERSACION =
+    'onsite_conversion.messaging_conversation_started_7d'
+
+  it('produce una fila por campania y dia con gasto y conversaciones', () => {
+    const diarios: InsightCampania[] = [
+      {
+        campaign_id: '111',
+        spend: '200.29',
+        actions: [{ action_type: CONVERSACION, value: '3' }],
+        date_start: '2026-06-23',
+      },
+      {
+        campaign_id: '111',
+        spend: '180.43',
+        date_start: '2026-06-24',
+      },
+    ]
+
+    expect(prepararMetricasDiarias(idPorMeta, 'cli-1', diarios)).toEqual([
+      {
+        campania_id: 'db-1',
+        cliente_id: 'cli-1',
+        fecha: '2026-06-23',
+        gasto: 200.29,
+        conversaciones: 3,
+      },
+      {
+        campania_id: 'db-1',
+        cliente_id: 'cli-1',
+        fecha: '2026-06-24',
+        gasto: 180.43,
+        conversaciones: 0,
+      },
+    ])
+  })
+
+  it('ignora campanias fuera del mapa y filas sin fecha', () => {
+    const diarios: InsightCampania[] = [
+      { campaign_id: '999', spend: '50', date_start: '2026-06-23' },
+      { campaign_id: '111', spend: '50' },
+    ]
+
+    expect(prepararMetricasDiarias(idPorMeta, 'cli-1', diarios)).toEqual([])
   })
 })
 
