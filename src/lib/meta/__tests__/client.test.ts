@@ -166,6 +166,53 @@ describe('obtenerTodos', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
+  it('reintenta en errores legacy (17) con backoff exponencial 1s/2s y lanza ErrorMeta tras 2 reintentos', async () => {
+    const cuerpoError = {
+      error: { code: 17, message: 'User request limit reached' },
+    }
+    const fetchMock = vi.fn().mockResolvedValue(respuesta(cuerpoError))
+    vi.stubGlobal('fetch', fetchMock)
+    const dormir = vi.fn(async () => {})
+
+    let error: unknown
+    try {
+      await obtenerTodos('/act_1/campaigns', {}, dormir)
+    } catch (e) {
+      error = e
+    }
+
+    expect(error).toBeInstanceOf(ErrorMeta)
+    expect((error as ErrorMeta).codigo).toBe(17)
+    expect(dormir).toHaveBeenCalledTimes(2)
+    expect(dormir).toHaveBeenNthCalledWith(1, 1000)
+    expect(dormir).toHaveBeenNthCalledWith(2, 2000)
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+  })
+
+  it('lanza un Error (no ErrorMeta) si la respuesta no es JSON valido / fallo de red', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce({
+      json: async () => {
+        throw new Error('Unexpected token < in JSON at position 0')
+      },
+    } as unknown as Response)
+    vi.stubGlobal('fetch', fetchMock)
+    const dormir = vi.fn(async () => {})
+
+    let error: unknown
+    try {
+      await obtenerTodos('/act_1/campaigns', {}, dormir)
+    } catch (e) {
+      error = e
+    }
+
+    expect(error).toBeInstanceOf(Error)
+    expect(error).not.toBeInstanceOf(ErrorMeta)
+    expect((error as Error).message.startsWith(
+      'Fallo de red o respuesta invalida de Meta'
+    )).toBe(true)
+    expect(dormir).not.toHaveBeenCalled()
+  })
+
   it('lanza si faltan META_SYSTEM_TOKEN / META_APP_SECRET', async () => {
     vi.unstubAllEnvs()
     const fetchMock = vi.fn()

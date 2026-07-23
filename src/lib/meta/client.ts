@@ -11,9 +11,11 @@ import type { PaginaGraph } from './tipos'
 const BASE = 'https://graph.facebook.com/v25.0'
 const CODIGOS_THROTTLE = new Set([80000, 80004])
 const CODIGOS_LEGACY = new Set([4, 17])
-// El cron que llama a este cliente tiene maxDuration=300s: nunca dormir mas
-// de ~120s en total por corrida, o arriesgamos que Vercel mate la funcion
-// antes de registrar el error en sync_runs.
+// Tope de espera acumulada POR LLAMADA a obtenerTodos (no por corrida del
+// sync completo): el cron tiene maxDuration=300s y puede llamar a este
+// cliente varias veces (campanas + insights, por cuenta). Presupuestar el
+// tiempo total de la corrida contra ese limite es responsabilidad del
+// orquestador (sync.ts, Task 4), no de este cliente.
 const ESPERA_MAXIMA_MS = 120_000
 
 export class ErrorMeta extends Error {
@@ -53,13 +55,26 @@ export async function obtenerTodos<T>(
   let esperaAcumuladaMs = 0
 
   while (siguiente) {
-    const respuesta = await fetch(siguiente)
-    const cuerpo = (await respuesta.json()) as PaginaGraph<T> & {
+    let cuerpo: PaginaGraph<T> & {
       error?: {
         code: number
         message: string
         estimated_time_to_regain_access?: number
       }
+    }
+    try {
+      // siguiente incluye access_token y appsecret_proof en el query
+      // string: nunca loguear esta URL.
+      const respuesta = await fetch(siguiente)
+      cuerpo = await respuesta.json()
+    } catch (error) {
+      // Solo se reintentan errores reportados por Meta (con codigo); un
+      // fallo de red o una respuesta no-JSON (HTML de un proxy/CDN, etc.)
+      // no trae codigo con el que decidir throttle vs backoff, asi que se
+      // propaga de inmediato sin reintento.
+      throw new Error(
+        `Fallo de red o respuesta invalida de Meta: ${(error as Error).message}`
+      )
     }
 
     if (cuerpo.error) {
