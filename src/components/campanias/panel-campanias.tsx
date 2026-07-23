@@ -13,6 +13,16 @@ import {
 import { toast } from 'sonner'
 
 import { cambiarEstadoCampania } from '@/app/(app)/agencia/campanias/actions'
+import {
+  AlertDialog,
+  AlertDialogClose,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -34,8 +44,20 @@ export type CampaniaView = {
   cliente: string
   clienteId: string
   gasto: number | null
+  /** Número que se muestra: CRM en manuales, Meta en sincronizadas. */
   leads: number
   ganados: number
+  /** Id de la campaña en Meta; null cuando es manual. */
+  metaCampaignId: string | null
+  /** Cuenta publicitaria del cliente ("act_…") o null. */
+  cuentaMeta: string | null
+  /** Leads ligados en el CRM (métrica secundaria en sincronizadas). */
+  leadsCrm: number
+}
+
+/** URL del Ads Manager de la cuenta ("act_123" → act=123). */
+function urlAdsManager(cuentaMeta: string): string {
+  return `https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=${cuentaMeta.replace(/^act_/, '')}`
 }
 
 /** "Deshacer" del toast al archivar: regresa la campaña a su estado. */
@@ -171,7 +193,9 @@ function TarjetaCampania({
 }) {
   const [saliendo, setSaliendo] = React.useState(false)
   const [pendiente, setPendiente] = React.useState(false)
+  const [avisoMeta, setAvisoMeta] = React.useState(false)
   const activa = campania.estado === 'activa'
+  const sincronizada = campania.metaCampaignId != null
   const costoPorLead =
     campania.gasto != null && campania.gasto > 0 && campania.leads > 0
       ? campania.gasto / campania.leads
@@ -226,7 +250,14 @@ function TarjetaCampania({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="truncate font-semibold">{campania.nombre}</p>
+          <div className="flex min-w-0 items-center gap-1.5">
+            <p className="truncate font-semibold">{campania.nombre}</p>
+            {sincronizada ? (
+              <Badge variant="secondary" className="shrink-0">
+                Meta
+              </Badge>
+            ) : null}
+          </div>
           <p className="truncate text-xs text-muted-foreground">
             {mostrarCliente ? `${campania.cliente} · ` : ''}
             {campania.plataforma ?? 'Sin plataforma'}
@@ -260,7 +291,11 @@ function TarjetaCampania({
             <DropdownMenuContent align="end" sideOffset={4}>
               <DropdownMenuItem
                 disabled={pendiente}
-                onClick={() => void alternarPausa()}
+                onClick={() =>
+                  // Las sincronizadas se administran desde Meta: aquí solo
+                  // se avisa y se manda al Ads Manager.
+                  sincronizada ? setAvisoMeta(true) : void alternarPausa()
+                }
               >
                 {activa ? <PauseIcon aria-hidden /> : <PlayIcon aria-hidden />}
                 {activa ? 'Pausar' : 'Reanudar'}
@@ -277,7 +312,12 @@ function TarjetaCampania({
       <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
         <div>
           <p className="text-xl font-bold tracking-tight">{campania.leads}</p>
-          <p className="text-xs text-muted-foreground">leads</p>
+          <p className="text-xs text-muted-foreground">
+            leads
+            {sincronizada && campania.leadsCrm > 0
+              ? ` · ${campania.leadsCrm} en CRM`
+              : ''}
+          </p>
         </div>
         <div>
           <p className="text-xl font-bold tracking-tight">
@@ -316,6 +356,39 @@ function TarjetaCampania({
             : 'Sin leads todavía'}
         </p>
       </div>
+
+      {sincronizada ? (
+        <AlertDialog open={avisoMeta} onOpenChange={setAvisoMeta}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Se administra desde Meta</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta campaña se administra desde Meta Ads Manager; pausarla
+                aquí no la detiene en Meta. Haz el cambio directamente en el
+                Ads Manager.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogClose render={<Button variant="outline" />}>
+                Entendido
+              </AlertDialogClose>
+              {campania.cuentaMeta ? (
+                <Button
+                  render={
+                    <a
+                      href={urlAdsManager(campania.cuentaMeta)}
+                      target="_blank"
+                      rel="noreferrer"
+                    />
+                  }
+                >
+                  Abrir Ads Manager
+                </Button>
+              ) : null}
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      ) : null}
     </Card>
   )
 }

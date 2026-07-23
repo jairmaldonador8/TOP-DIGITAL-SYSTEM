@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 
+import { BotonSincronizar } from '@/components/campanias/boton-sincronizar'
 import {
   CampaniaFormDialog,
   type ClienteOpcion,
@@ -22,19 +23,23 @@ type FilaCampaniaDb = {
   estado: 'activa' | 'pausada' | 'archivada'
   fecha_inicio: string | null
   leads_generados: number
+  meta_campaign_id: string | null
   cliente_id: string
-  clientes: { nombre_negocio: string } | null
+  clientes: {
+    nombre_negocio: string
+    meta_ad_account_id: string | null
+  } | null
 }
 
 export default async function PaginaCampaniasAgencia() {
   const supabase = await createClient()
 
   // Finanzas es tabla sensible (solo admin): consulta aparte del listado.
-  const [campanias, finanzas, leads, clientesRes] = await Promise.all([
+  const [campanias, finanzas, leads, clientesRes, syncRes] = await Promise.all([
     supabase
       .from('campanias')
       .select(
-        'id, nombre, plataforma, estado, fecha_inicio, leads_generados, cliente_id, clientes ( nombre_negocio )'
+        'id, nombre, plataforma, estado, fecha_inicio, leads_generados, meta_campaign_id, cliente_id, clientes ( nombre_negocio, meta_ad_account_id )'
       )
       .order('created_at', { ascending: false }),
     supabase.from('campania_finanzas').select('campania_id, gasto'),
@@ -47,6 +52,13 @@ export default async function PaginaCampaniasAgencia() {
       .select('id, nombre_negocio')
       .eq('estado', 'activo')
       .order('nombre_negocio'),
+    // Última corrida del sync de Meta (bitácora solo-admin).
+    supabase
+      .from('sync_runs')
+      .select('fin, exito')
+      .order('inicio', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ])
 
   if (campanias.error) {
@@ -75,6 +87,7 @@ export default async function PaginaCampaniasAgencia() {
     (campanias.data ?? []) as unknown as FilaCampaniaDb[]
   ).map((campania) => {
     const stats = statsPor.get(campania.id)
+    const sincronizada = campania.meta_campaign_id != null
     return {
       id: campania.id,
       nombre: campania.nombre,
@@ -84,13 +97,23 @@ export default async function PaginaCampaniasAgencia() {
       cliente: campania.clientes?.nombre_negocio ?? '—',
       clienteId: campania.cliente_id,
       gasto: gastoPor.get(campania.id) ?? null,
-      // Si aún no hay leads ligados, se muestra el contador manual.
-      leads: stats?.total || campania.leads_generados,
+      // Sincronizada: manda el número de Meta y el CRM queda como métrica
+      // secundaria. Manual: leads del CRM o, si no hay, el contador manual.
+      leads: sincronizada
+        ? campania.leads_generados
+        : stats?.total || campania.leads_generados,
       ganados: stats?.ganados ?? 0,
+      metaCampaignId: campania.meta_campaign_id,
+      cuentaMeta: campania.clientes?.meta_ad_account_id ?? null,
+      leadsCrm: sincronizada ? (stats?.total ?? 0) : 0,
     }
   })
 
   const clientes = (clientesRes.data ?? []) as ClienteOpcion[]
+  const ultimaSync = (syncRes.data ?? null) as {
+    fin: string | null
+    exito: boolean
+  } | null
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
@@ -103,6 +126,8 @@ export default async function PaginaCampaniasAgencia() {
         </div>
         <CampaniaFormDialog clientes={clientes} />
       </header>
+
+      <BotonSincronizar ultimaSync={ultimaSync} />
 
       {campanias.error ? (
         <Card className="items-center py-10 text-center">

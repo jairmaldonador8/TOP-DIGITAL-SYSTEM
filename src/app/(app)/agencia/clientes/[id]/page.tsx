@@ -13,6 +13,7 @@ import {
   ClienteFormDialog,
   type ClienteEditable,
 } from '@/components/clientes/cliente-form'
+import { ConexionMeta } from '@/components/clientes/conexion-meta'
 import {
   EstadoClienteBadge,
   type EstadoCliente,
@@ -51,6 +52,7 @@ export const metadata: Metadata = {
 type Cliente = ClienteEditable & {
   estado: EstadoCliente
   es_agencia: boolean
+  meta_ad_account_id: string | null
   created_at: string
 }
 
@@ -79,6 +81,7 @@ type FilaCampaniaDb = {
   estado: 'activa' | 'pausada' | 'archivada'
   fecha_inicio: string | null
   leads_generados: number
+  meta_campaign_id: string | null
 }
 
 const MONEDA = new Intl.NumberFormat('es-MX', {
@@ -100,7 +103,7 @@ export default async function PaginaCliente({
   const { data, error: errorCliente } = await supabase
     .from('clientes')
     .select(
-      'id, nombre_negocio, contacto_nombre, email, telefono, presupuesto_ads, meta_facturacion, estado, es_agencia, notas, created_at'
+      'id, nombre_negocio, contacto_nombre, email, telefono, presupuesto_ads, meta_facturacion, estado, es_agencia, meta_ad_account_id, notas, created_at'
     )
     .eq('id', id)
     .maybeSingle()
@@ -130,7 +133,9 @@ export default async function PaginaCliente({
       .limit(1000),
     supabase
       .from('campanias')
-      .select('id, nombre, plataforma, estado, fecha_inicio, leads_generados')
+      .select(
+        'id, nombre, plataforma, estado, fecha_inicio, leads_generados, meta_campaign_id'
+      )
       .eq('cliente_id', cliente.id)
       .order('created_at', { ascending: false }),
     supabase
@@ -171,6 +176,7 @@ export default async function PaginaCliente({
     (campaniasRes.data ?? []) as FilaCampaniaDb[]
   ).map((campania) => {
     const stats = statsPor.get(campania.id)
+    const sincronizada = campania.meta_campaign_id != null
     return {
       id: campania.id,
       nombre: campania.nombre,
@@ -180,8 +186,15 @@ export default async function PaginaCliente({
       cliente: cliente.nombre_negocio,
       clienteId: cliente.id,
       gasto: gastoPor.get(campania.id) ?? null,
-      leads: stats?.total || campania.leads_generados,
+      // Sincronizada: manda el número de Meta y el CRM queda como métrica
+      // secundaria. Manual: leads del CRM o, si no hay, el contador manual.
+      leads: sincronizada
+        ? campania.leads_generados
+        : stats?.total || campania.leads_generados,
       ganados: stats?.ganados ?? 0,
+      metaCampaignId: campania.meta_campaign_id,
+      cuentaMeta: cliente.meta_ad_account_id,
+      leadsCrm: sincronizada ? (stats?.total ?? 0) : 0,
     }
   })
   const campaniasSinArchivar = listaCampanias.filter(
@@ -276,6 +289,10 @@ export default async function PaginaCliente({
               </dl>
             </CardContent>
           </Card>
+          <ConexionMeta
+            clienteId={cliente.id}
+            metaAdAccountId={cliente.meta_ad_account_id}
+          />
         </TabsContent>
 
         <TabsContent value="usuarios">
