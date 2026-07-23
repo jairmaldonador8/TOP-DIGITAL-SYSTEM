@@ -65,7 +65,7 @@ function urlAdsManager(cuentaMeta: string): string {
  * (pausar, archivar o restaurar se revertiría en la próxima
  * sincronización); el cambio real se hace en el Ads Manager.
  */
-function AvisoMetaDialog({
+export function AvisoMetaDialog({
   abierto,
   onOpenChange,
   cuentaMeta,

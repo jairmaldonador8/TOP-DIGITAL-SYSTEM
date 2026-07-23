@@ -6,10 +6,13 @@ import {
   type ClienteOpcion,
 } from '@/components/campanias/campania-form'
 import {
-  PanelCampanias,
-  type CampaniaView,
-} from '@/components/campanias/panel-campanias'
+  CuadriculaClientes,
+  type CampaniaSemaforo,
+  type ClienteSemaforo,
+} from '@/components/campanias/cuadricula-clientes'
 import { Card } from '@/components/ui/card'
+import { promedioCPL, saludCampania } from '@/lib/campanias/salud'
+import type { EstadoCampania } from '@/lib/campanias/tipos'
 import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = {
@@ -19,37 +22,36 @@ export const metadata: Metadata = {
 type FilaCampaniaDb = {
   id: string
   nombre: string
-  plataforma: string | null
-  estado: 'activa' | 'pausada' | 'archivada'
-  fecha_inicio: string | null
+  estado: EstadoCampania
   leads_generados: number
+  conversaciones_7d: number
   meta_campaign_id: string | null
   cliente_id: string
-  clientes: {
-    nombre_negocio: string
-    meta_ad_account_id: string | null
-  } | null
 }
+
+type FilaClienteDb = {
+  id: string
+  nombre_negocio: string
+  meta_ad_account_id: string | null
+  es_agencia: boolean
+}
+
+const ORDEN_SALUD = { rojo: 0, ambar: 1, verde: 2, gris: 3 } as const
 
 export default async function PaginaCampaniasAgencia() {
   const supabase = await createClient()
 
   // Finanzas es tabla sensible (solo admin): consulta aparte del listado.
-  const [campanias, finanzas, leads, clientesRes, syncRes] = await Promise.all([
+  const [campanias, finanzas, clientesRes, syncRes] = await Promise.all([
     supabase
       .from('campanias')
       .select(
-        'id, nombre, plataforma, estado, fecha_inicio, leads_generados, meta_campaign_id, cliente_id, clientes ( nombre_negocio, meta_ad_account_id )'
-      )
-      .order('created_at', { ascending: false }),
-    supabase.from('campania_finanzas').select('campania_id, gasto'),
-    supabase
-      .from('leads')
-      .select('campania_id, etapa')
-      .not('campania_id', 'is', null),
+        'id, nombre, estado, leads_generados, conversaciones_7d, meta_campaign_id, cliente_id'
+      ),
+    supabase.from('campania_finanzas').select('campania_id, gasto, gasto_7d'),
     supabase
       .from('clientes')
-      .select('id, nombre_negocio')
+      .select('id, nombre_negocio, meta_ad_account_id, es_agencia')
       .eq('estado', 'activo')
       .order('nombre_negocio'),
     // Última corrida del sync de Meta (bitácora solo-admin).
@@ -65,51 +67,90 @@ export default async function PaginaCampaniasAgencia() {
     console.error('Error al cargar campañas:', campanias.error)
   }
 
-  const gastoPor = new Map(
-    ((finanzas.data ?? []) as { campania_id: string; gasto: number }[]).map(
-      (fila) => [fila.campania_id, fila.gasto]
-    )
+  const filasCampanias = (campanias.data ?? []) as FilaCampaniaDb[]
+  const filasClientes = (clientesRes.data ?? []) as FilaClienteDb[]
+  const finanzasPor = new Map(
+    (
+      (finanzas.data ?? []) as {
+        campania_id: string
+        gasto: number
+        gasto_7d: number
+      }[]
+    ).map((fila) => [fila.campania_id, fila])
   )
 
-  // Métricas reales desde la tabla de leads (ligados por campania_id).
-  const statsPor = new Map<string, { total: number; ganados: number }>()
-  for (const lead of (leads.data ?? []) as {
-    campania_id: string
-    etapa: string
-  }[]) {
-    const stats = statsPor.get(lead.campania_id) ?? { total: 0, ganados: 0 }
-    stats.total += 1
-    if (lead.etapa === 'ganado') stats.ganados += 1
-    statsPor.set(lead.campania_id, stats)
+  // Semáforo por cliente: promedio histórico propio + reglas de salud.
+  const porCliente = new Map<string, FilaCampaniaDb[]>()
+  for (const campania of filasCampanias) {
+    const lista = porCliente.get(campania.cliente_id) ?? []
+    lista.push(campania)
+    porCliente.set(campania.cliente_id, lista)
   }
 
-  const lista: CampaniaView[] = (
-    (campanias.data ?? []) as unknown as FilaCampaniaDb[]
-  ).map((campania) => {
-    const stats = statsPor.get(campania.id)
-    const sincronizada = campania.meta_campaign_id != null
-    return {
-      id: campania.id,
-      nombre: campania.nombre,
-      plataforma: campania.plataforma,
-      estado: campania.estado,
-      fecha_inicio: campania.fecha_inicio,
-      cliente: campania.clientes?.nombre_negocio ?? '—',
-      clienteId: campania.cliente_id,
-      gasto: gastoPor.get(campania.id) ?? null,
-      // Sincronizada: manda el número de Meta y el CRM queda como métrica
-      // secundaria. Manual: leads del CRM o, si no hay, el contador manual.
-      leads: sincronizada
-        ? campania.leads_generados
-        : stats?.total || campania.leads_generados,
-      ganados: stats?.ganados ?? 0,
-      metaCampaignId: campania.meta_campaign_id,
-      cuentaMeta: campania.clientes?.meta_ad_account_id ?? null,
-      leadsCrm: sincronizada ? (stats?.total ?? 0) : 0,
-    }
-  })
+  const tarjetas: ClienteSemaforo[] = filasClientes
+    .filter((c) => !c.es_agencia)
+    .map((cliente) => {
+      const propias = porCliente.get(cliente.id) ?? []
+      const promedio = promedioCPL(
+        propias.map((campania) => ({
+          gasto: Number(finanzasPor.get(campania.id)?.gasto ?? 0),
+          conversaciones: campania.leads_generados,
+        }))
+      )
 
-  const clientes = (clientesRes.data ?? []) as ClienteOpcion[]
+      const evaluadas: CampaniaSemaforo[] = propias.map((campania) => {
+        const gasto7d = Number(finanzasPor.get(campania.id)?.gasto_7d ?? 0)
+        const salud = saludCampania({
+          estado: campania.estado,
+          gasto7d,
+          conversaciones7d: campania.conversaciones_7d,
+          promedioCliente: promedio,
+        })
+        return {
+          id: campania.id,
+          nombre: campania.nombre,
+          estado: campania.estado,
+          salud,
+          esMeta: campania.meta_campaign_id != null,
+          conversaciones7d: campania.conversaciones_7d,
+          gasto7d,
+          cpl7d:
+            campania.conversaciones_7d > 0
+              ? gasto7d / campania.conversaciones_7d
+              : null,
+          cuentaMeta: cliente.meta_ad_account_id,
+        }
+      })
+
+      const ordenadas = [...evaluadas].sort(
+        (a, b) => ORDEN_SALUD[a.salud] - ORDEN_SALUD[b.salud]
+      )
+      const esReciente = (campania: CampaniaSemaforo) =>
+        campania.estado === 'activa' ||
+        campania.gasto7d > 0 ||
+        campania.conversaciones7d > 0
+
+      return {
+        id: cliente.id,
+        nombre: cliente.nombre_negocio,
+        activas: evaluadas.filter((c) => c.estado === 'activa').length,
+        verdes: evaluadas.filter((c) => c.salud === 'verde').length,
+        ambars: evaluadas.filter((c) => c.salud === 'ambar').length,
+        rojas: evaluadas.filter((c) => c.salud === 'rojo').length,
+        recientes: ordenadas.filter(esReciente),
+        historicas: ordenadas.filter((c) => !esReciente(c)),
+      }
+    })
+    .sort(
+      (a, b) =>
+        b.rojas - a.rojas ||
+        b.activas - a.activas ||
+        a.nombre.localeCompare(b.nombre, 'es')
+    )
+
+  const clientes = filasClientes.map(
+    ({ id, nombre_negocio }) => ({ id, nombre_negocio }) as ClienteOpcion
+  )
   const ultimaSync = (syncRes.data ?? null) as {
     fin: string | null
     exito: boolean
@@ -121,7 +162,7 @@ export default async function PaginaCampaniasAgencia() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Campañas</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Las campañas de cada cliente y cómo van.
+            El pulso de cada cliente: verde va bien, rojo necesita atención.
           </p>
         </div>
         <CampaniaFormDialog clientes={clientes} />
@@ -137,7 +178,7 @@ export default async function PaginaCampaniasAgencia() {
           </p>
         </Card>
       ) : (
-        <PanelCampanias campanias={lista} />
+        <CuadriculaClientes clientes={tarjetas} />
       )}
     </div>
   )
