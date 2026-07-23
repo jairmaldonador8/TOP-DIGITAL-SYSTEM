@@ -33,6 +33,7 @@ const ELEMENTOS_AGENCIA: ElementoNav[] = [
   { icono: 'leads', label: 'Leads', href: '/agencia/leads' },
   { icono: 'chats', label: 'Chats', href: '/agencia/chats' },
   { icono: 'equipo', label: 'Equipo', href: '/agencia/equipo' },
+  { icono: 'calendario', label: 'Calendario', href: '/agencia/calendario' },
   { icono: 'reportes', label: 'Reportes', href: '/agencia/reportes' },
 ]
 

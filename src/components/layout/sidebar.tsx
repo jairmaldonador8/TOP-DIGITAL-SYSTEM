@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
+  CalendarDays,
   ChartColumn,
   ChevronsUpDown,
   LayoutDashboard,
@@ -43,6 +44,7 @@ const ICONOS = {
   chats: MessagesSquare,
   chat: MessageCircle,
   equipo: UsersRound,
+  calendario: CalendarDays,
   reportes: ChartColumn,
 } satisfies Record<string, LucideIcon>
 
