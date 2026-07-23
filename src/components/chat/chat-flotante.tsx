@@ -20,6 +20,12 @@ type ChatFlotanteProps = {
   miId: string | null
   action: (formData: FormData) => Promise<void>
   marcarLeidos: () => Promise<void>
+  /** Canal de realtime; default: el hilo del cliente (portal). */
+  topico?: string
+  /** Encabezado del panel; defaults = chat del portal con Tadeo. */
+  titulo?: string
+  subtitulo?: string
+  inicialAvatar?: string
 }
 
 /**
@@ -35,13 +41,17 @@ export function ChatFlotante({
   miId,
   action,
   marcarLeidos,
+  topico,
+  titulo = 'Tadeo',
+  subtitulo = 'Top Digital · te responde personalmente',
+  inicialAvatar = 'T',
 }: ChatFlotanteProps) {
   const router = useRouter()
   const [abierto, setAbierto] = React.useState(false)
   const hiloRef = React.useRef<HTMLDivElement>(null)
 
   useCanalChat({
-    topico: clienteId ? `chat:${clienteId}` : null,
+    topico: topico ?? (clienteId ? `chat:${clienteId}` : null),
     evento: 'INSERT',
     // El servidor es la fuente de verdad: un refresh trae mensajes y conteo.
     onPayload: () => router.refresh(),
@@ -71,7 +81,7 @@ export function ChatFlotante({
     <>
       {abierto ? (
         <section
-          aria-label="Chat con Tadeo"
+          aria-label={`Chat con ${titulo}`}
           className="fixed right-4 bottom-24 z-50 flex max-h-[min(560px,calc(100svh-8rem))] w-[min(24rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
         >
           <header className="bg-marca flex items-center gap-3 px-4 py-3 text-white">
@@ -79,13 +89,11 @@ export function ChatFlotante({
               aria-hidden
               className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/20 text-sm font-bold"
             >
-              T
+              {inicialAvatar}
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold">Tadeo</p>
-              <p className="truncate text-xs text-white/85">
-                Top Digital · te responde personalmente
-              </p>
+              <p className="text-sm font-semibold">{titulo}</p>
+              <p className="truncate text-xs text-white/85">{subtitulo}</p>
             </div>
             <button
               type="button"
@@ -115,7 +123,7 @@ export function ChatFlotante({
         aria-label={
           abierto
             ? 'Cerrar chat'
-            : `Abrir chat con Tadeo${noLeidos > 0 ? ` (${noLeidos} mensajes nuevos)` : ''}`
+            : `Abrir chat con ${titulo}${noLeidos > 0 ? ` (${noLeidos} mensajes nuevos)` : ''}`
         }
         className="group fixed right-4 bottom-4 z-50 outline-none"
       >

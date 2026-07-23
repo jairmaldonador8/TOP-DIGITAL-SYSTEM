@@ -4,13 +4,19 @@ import {
   BandejaRevision,
   type EntregaView,
 } from '@/components/equipo/bandeja-revision'
+import type { Mensaje } from '@/components/chat/hilo'
 import {
   EncargoFormDialog,
   TrabajadorFormDialog,
   type ClienteOpcionEquipo,
   type TrabajadorOpcion,
 } from '@/components/equipo/formularios-equipo'
-import { Card, CardContent } from '@/components/ui/card'
+import {
+  TarjetaIntegrante,
+  type EncargoDeIntegrante,
+} from '@/components/equipo/tarjeta-integrante'
+import { Card } from '@/components/ui/card'
+import { usuarioActual } from '@/lib/auth/usuario-actual'
 import type { EstadoEncargo } from '@/lib/equipo/transiciones'
 import { createClient } from '@/lib/supabase/server'
 
@@ -29,15 +35,20 @@ type FilaEncargo = {
   titulo: string
   descripcion: string | null
   estado: EstadoEncargo
+  prioridad: string
+  fecha_limite: string | null
   asignado_a: string
   cliente_id: string | null
   entregado_en: string | null
 }
 
 export default async function PaginaEquipoAgencia() {
+  const actual = await usuarioActual()
+  const miId = typeof actual.claims?.sub === 'string' ? actual.claims.sub : null
   const supabase = await createClient()
 
-  const [integrantesRes, encargosRes, clientesRes] = await Promise.all([
+  const [integrantesRes, encargosRes, clientesRes, mensajesRes] =
+    await Promise.all([
     supabase
       .from('usuarios')
       .select('user_id, nombre, puesto')
@@ -46,7 +57,7 @@ export default async function PaginaEquipoAgencia() {
     supabase
       .from('encargos')
       .select(
-        'id, titulo, descripcion, estado, asignado_a, cliente_id, entregado_en'
+        'id, titulo, descripcion, estado, prioridad, fecha_limite, asignado_a, cliente_id, entregado_en'
       ),
     supabase
       .from('clientes')
@@ -54,6 +65,12 @@ export default async function PaginaEquipoAgencia() {
       .eq('estado', 'activo')
       .eq('es_agencia', false)
       .order('nombre_negocio'),
+    // Hilos de todo el equipo (pocos integrantes; últimos 100 por orden global).
+    supabase
+      .from('mensajes_equipo')
+      .select('id, trabajador_id, autor_id, autor_nombre, texto, leido, created_at')
+      .order('created_at', { ascending: false })
+      .limit(300),
   ])
 
   if (integrantesRes.error) {
@@ -73,6 +90,17 @@ export default async function PaginaEquipoAgencia() {
     nombre: i.nombre ?? 'Integrante',
     puesto: i.puesto ?? '—',
   }))
+
+  // Hilos de chat agrupados por trabajador, en orden cronológico.
+  const mensajesPorHilo = new Map<string, (Mensaje & { leido: boolean })[]>()
+  for (const fila of (mensajesRes.data ?? []) as (Mensaje & {
+    trabajador_id: string
+    leido: boolean
+  })[]) {
+    const hilo = mensajesPorHilo.get(fila.trabajador_id) ?? []
+    hilo.unshift(fila)
+    mensajesPorHilo.set(fila.trabajador_id, hilo)
+  }
 
   const entregas: EntregaView[] = encargos
     .filter((e) => e.estado === 'entregado')
@@ -121,42 +149,43 @@ export default async function PaginaEquipoAgencia() {
             const suyos = encargos.filter(
               (e) => e.asignado_a === integrante.user_id
             )
-            const activos = suyos.filter(
-              (e) =>
-                e.estado === 'pendiente' ||
-                e.estado === 'en_progreso' ||
-                e.estado === 'cambios'
-            ).length
-            const porRevisar = suyos.filter(
-              (e) => e.estado === 'entregado'
-            ).length
-            const aprobados = suyos.filter(
-              (e) => e.estado === 'aprobado'
-            ).length
+            const hilo = mensajesPorHilo.get(integrante.user_id) ?? []
             return (
-              <Card key={integrante.user_id} className="gap-3 px-4 py-4">
-                <CardContent className="flex flex-col gap-2 p-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold">
-                        {integrante.nombre ?? 'Integrante'}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {integrante.puesto ?? '—'}
-                      </p>
-                    </div>
-                    {porRevisar > 0 ? (
-                      <span className="bg-marca inline-flex h-5 shrink-0 items-center rounded-4xl px-2 text-xs font-semibold whitespace-nowrap text-white">
-                        {porRevisar} por revisar
-                      </span>
-                    ) : null}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {activos} {activos === 1 ? 'activo' : 'activos'} ·{' '}
-                    {aprobados} {aprobados === 1 ? 'aprobado' : 'aprobados'}
-                  </p>
-                </CardContent>
-              </Card>
+              <TarjetaIntegrante
+                key={integrante.user_id}
+                userId={integrante.user_id}
+                nombre={integrante.nombre ?? 'Integrante'}
+                puesto={integrante.puesto ?? '—'}
+                activos={
+                  suyos.filter(
+                    (e) =>
+                      e.estado === 'pendiente' ||
+                      e.estado === 'en_progreso' ||
+                      e.estado === 'cambios'
+                  ).length
+                }
+                porRevisar={suyos.filter((e) => e.estado === 'entregado').length}
+                aprobados={suyos.filter((e) => e.estado === 'aprobado').length}
+                mensajes={hilo}
+                noLeidos={
+                  hilo.filter((m) => !m.leido && m.autor_id !== miId).length
+                }
+                miId={miId}
+                encargos={suyos.map(
+                  (e): EncargoDeIntegrante => ({
+                    id: e.id,
+                    titulo: e.titulo,
+                    descripcion: e.descripcion,
+                    prioridad: e.prioridad,
+                    fecha_limite: e.fecha_limite,
+                    asignado_a: e.asignado_a,
+                    cliente_id: e.cliente_id,
+                    estado: e.estado,
+                  })
+                )}
+                trabajadores={trabajadores}
+                clientes={clientes}
+              />
             )
           })}
         </div>

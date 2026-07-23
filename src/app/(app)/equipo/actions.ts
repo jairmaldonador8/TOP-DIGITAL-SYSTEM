@@ -62,3 +62,40 @@ export async function avanzarEncargo(
   revalidatePath('/agencia', 'layout')
   return { ok: true }
 }
+
+/** El trabajador escribe en su hilo con el dueño. */
+export async function enviarMensajeEquipo(formData: FormData) {
+  const actual = await usuarioActual()
+  const miId = typeof actual.claims?.sub === 'string' ? actual.claims.sub : null
+  if (actual.rol !== 'equipo' || !miId) return
+  const texto = formData.get('texto')
+  if (typeof texto !== 'string') return
+  const limpio = texto.trim().slice(0, 2000)
+  if (!limpio) return
+
+  const supabase = await createClient()
+  const { error } = await supabase.from('mensajes_equipo').insert({
+    trabajador_id: miId,
+    autor_id: miId,
+    autor_nombre: actual.nombre ?? 'Integrante',
+    texto: limpio,
+  })
+  if (error) console.error('Error al enviar mensaje de equipo:', error)
+  revalidatePath('/equipo', 'layout')
+}
+
+/** Marca leídos los mensajes del dueño en el hilo propio. */
+export async function marcarMensajesEquipoLeidos() {
+  const actual = await usuarioActual()
+  const miId = typeof actual.claims?.sub === 'string' ? actual.claims.sub : null
+  if (actual.rol !== 'equipo' || !miId) return
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('mensajes_equipo')
+    .update({ leido: true })
+    .eq('trabajador_id', miId)
+    .eq('leido', false)
+    .or(`autor_id.neq.${miId},autor_id.is.null`)
+  if (error) console.error('Error al marcar leídos (equipo):', error)
+  revalidatePath('/equipo', 'layout')
+}

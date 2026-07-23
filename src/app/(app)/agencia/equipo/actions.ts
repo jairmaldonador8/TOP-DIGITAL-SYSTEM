@@ -9,6 +9,7 @@ import {
   valoresDe,
   type ResultadoAccion,
 } from '@/lib/acciones'
+import { usuarioActual } from '@/lib/auth/usuario-actual'
 import { validarUsuarioCliente } from '@/lib/clientes/validacion'
 import {
   PRIORIDADES_ENCARGO,
@@ -176,6 +177,156 @@ export async function crearEncargo(
     return {
       ok: false,
       errores: { _form: 'No se pudo crear el encargo, intenta de nuevo' },
+      valores,
+    }
+  }
+
+  revalidarEquipo()
+  return { ok: true }
+}
+
+/** ¿El uuid corresponde a un integrante con rol equipo? (nunca confiar en la UI) */
+async function esIntegrante(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string
+): Promise<boolean> {
+  const { data } = await supabase
+    .from('usuarios')
+    .select('user_id')
+    .eq('user_id', userId)
+    .eq('rol', 'equipo')
+    .maybeSingle()
+  return data !== null
+}
+
+/** El dueño escribe en el hilo de un trabajador. */
+export async function enviarMensajeATrabajador(
+  trabajadorId: string,
+  formData: FormData
+) {
+  if (!(await esAdmin())) return
+  if (!esUuid(trabajadorId)) return
+  const texto = formData.get('texto')
+  if (typeof texto !== 'string') return
+  const limpio = texto.trim().slice(0, 2000)
+  if (!limpio) return
+
+  const supabase = await createClient()
+  // El hilo debe ser de un integrante real: un uuid de cliente aquí
+  // volvería legible el hilo para ese cliente.
+  if (!(await esIntegrante(supabase, trabajadorId))) return
+
+  const actual = await usuarioActual()
+  const miId = typeof actual.claims?.sub === 'string' ? actual.claims.sub : null
+  const { error } = await supabase.from('mensajes_equipo').insert({
+    trabajador_id: trabajadorId,
+    autor_id: miId,
+    autor_nombre: actual.nombre ?? 'Top Digital',
+    texto: limpio,
+  })
+  if (error) console.error('Error al enviar mensaje a trabajador:', error)
+  revalidatePath('/agencia/equipo')
+}
+
+/** Marca leídos los mensajes del trabajador en su hilo (lado dueño). */
+export async function marcarLeidosDeTrabajador(trabajadorId: string) {
+  if (!(await esAdmin())) return
+  if (!esUuid(trabajadorId)) return
+  const actual = await usuarioActual()
+  const miId = typeof actual.claims?.sub === 'string' ? actual.claims.sub : null
+  if (!miId) return
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('mensajes_equipo')
+    .update({ leido: true })
+    .eq('trabajador_id', trabajadorId)
+    .eq('leido', false)
+    .or(`autor_id.neq.${miId},autor_id.is.null`)
+  if (error) console.error('Error al marcar leídos (agencia):', error)
+  revalidatePath('/agencia/equipo')
+}
+
+/** Edición del dueño: mismos campos que crear; los aprobados son intocables. */
+export async function editarEncargo(
+  encargoId: string,
+  _prev: ResultadoAccion,
+  formData: FormData
+): Promise<ResultadoAccion> {
+  if (!(await esAdmin())) return NO_AUTORIZADO
+  if (!esUuid(encargoId)) return NO_AUTORIZADO
+
+  const valores = valoresDe(formData, [
+    'asignado_a',
+    'cliente_id',
+    'titulo',
+    'descripcion',
+    'prioridad',
+    'fecha_limite',
+  ])
+  const errores: Record<string, string> = {}
+
+  const titulo = (valores.titulo ?? '').trim()
+  if (!titulo) errores.titulo = 'Ponle título al encargo'
+  else if (titulo.length > 200) errores.titulo = 'Máximo 200 caracteres'
+
+  if (!esUuid(valores.asignado_a ?? '')) {
+    errores.asignado_a = 'Elige a quién se lo asignas'
+  }
+  const clienteId = (valores.cliente_id ?? '').trim()
+  if (clienteId && !esUuid(clienteId)) errores.cliente_id = 'Cliente no válido'
+
+  const prioridad = (valores.prioridad ?? 'media') as PrioridadEncargo
+  if (!PRIORIDADES_ENCARGO.includes(prioridad)) {
+    errores.prioridad = 'Prioridad no válida'
+  }
+  const fecha = (valores.fecha_limite ?? '').trim()
+  if (fecha && !FECHA.test(fecha)) errores.fecha_limite = 'Fecha no válida'
+
+  if (Object.keys(errores).length > 0) return { ok: false, errores, valores }
+
+  const supabase = await createClient()
+  if (!(await esIntegrante(supabase, valores.asignado_a))) {
+    return {
+      ok: false,
+      errores: { asignado_a: 'Ese integrante no existe' },
+      valores,
+    }
+  }
+
+  const { data: encargo } = await supabase
+    .from('encargos')
+    .select('id, estado')
+    .eq('id', encargoId)
+    .maybeSingle()
+  if (!encargo) {
+    return { ok: false, errores: { _form: 'El encargo no existe' }, valores }
+  }
+  // La base también lo bloquea (trigger 0017); aquí damos el mensaje amable.
+  if (encargo.estado === 'aprobado') {
+    return {
+      ok: false,
+      errores: { _form: 'Un encargo aprobado ya no se puede editar' },
+      valores,
+    }
+  }
+
+  const { error } = await supabase
+    .from('encargos')
+    .update({
+      asignado_a: valores.asignado_a,
+      cliente_id: clienteId || null,
+      titulo,
+      descripcion: (valores.descripcion ?? '').trim() || null,
+      prioridad,
+      fecha_limite: fecha || null,
+    })
+    .eq('id', encargoId)
+
+  if (error) {
+    console.error('Error al editar encargo:', error)
+    return {
+      ok: false,
+      errores: { _form: 'No se pudo guardar, intenta de nuevo' },
       valores,
     }
   }

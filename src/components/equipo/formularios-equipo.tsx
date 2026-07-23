@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import {
   crearEncargo,
   crearTrabajador,
+  editarEncargo,
 } from '@/app/(app)/agencia/equipo/actions'
 import { Campo, describedBy } from '@/components/formularios/campo'
 import { Button } from '@/components/ui/button'
@@ -77,6 +78,8 @@ export function EncargoFormDialog({
         </DialogHeader>
         <FormularioEncargo
           key={epoca}
+          action={crearEncargo}
+          etiquetas={{ enviando: 'Asignando…', enviar: 'Asignar encargo' }}
           trabajadores={trabajadores}
           clientes={clientes}
           alExito={alExito}
@@ -86,17 +89,84 @@ export function EncargoFormDialog({
   )
 }
 
+export type EncargoEditable = {
+  id: string
+  titulo: string
+  descripcion: string | null
+  prioridad: string
+  fecha_limite: string | null
+  asignado_a: string
+  cliente_id: string | null
+}
+
+/** Dialog de edición de un encargo no aprobado (controlado por el padre). */
+export function EditarEncargoDialog({
+  encargo,
+  trabajadores,
+  clientes,
+  onCerrar,
+}: {
+  encargo: EncargoEditable | null
+  trabajadores: TrabajadorOpcion[]
+  clientes: ClienteOpcionEquipo[]
+  onCerrar: () => void
+}) {
+  const alExito = useCallback(() => {
+    toast.success('Encargo actualizado')
+    onCerrar()
+  }, [onCerrar])
+
+  return (
+    <Dialog open={encargo !== null} onOpenChange={(abre) => !abre && onCerrar()}>
+      <DialogContent className="sm:max-w-lg">
+        {encargo ? (
+          <>
+            <DialogHeader>
+              <DialogTitle>Editar encargo</DialogTitle>
+              <DialogDescription>
+                Los cambios se reflejan de inmediato para el integrante.
+              </DialogDescription>
+            </DialogHeader>
+            <FormularioEncargo
+              key={encargo.id}
+              action={editarEncargo.bind(null, encargo.id)}
+              etiquetas={{ enviando: 'Guardando…', enviar: 'Guardar cambios' }}
+              inicial={{
+                titulo: encargo.titulo,
+                descripcion: encargo.descripcion ?? '',
+                prioridad: encargo.prioridad,
+                fecha_limite: encargo.fecha_limite ?? '',
+                asignado_a: encargo.asignado_a,
+                cliente_id: encargo.cliente_id ?? '',
+              }}
+              trabajadores={trabajadores}
+              clientes={clientes}
+              alExito={alExito}
+            />
+          </>
+        ) : null}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 function FormularioEncargo({
+  action,
+  etiquetas,
+  inicial = {},
   trabajadores,
   clientes,
   alExito,
 }: {
+  action: (prev: ResultadoAccion, formData: FormData) => Promise<ResultadoAccion>
+  etiquetas: { enviando: string; enviar: string }
+  inicial?: Record<string, string>
   trabajadores: TrabajadorOpcion[]
   clientes: ClienteOpcionEquipo[]
   alExito: () => void
 }) {
   const [estado, enviar, pendiente] = useActionState<ResultadoAccion, FormData>(
-    crearEncargo,
+    action,
     null
   )
 
@@ -105,7 +175,8 @@ function FormularioEncargo({
   }, [estado, alExito])
 
   const errores = estado && !estado.ok ? estado.errores : {}
-  const valores = estado && !estado.ok ? estado.valores : {}
+  const capturados = estado && !estado.ok ? estado.valores : {}
+  const valores = { ...inicial, ...capturados }
 
   return (
     <form action={enviar} className="flex flex-col gap-4">
@@ -237,7 +308,7 @@ function FormularioEncargo({
       <DialogFooter>
         <DialogClose render={<Button variant="outline" />}>Cancelar</DialogClose>
         <Button type="submit" disabled={pendiente}>
-          {pendiente ? 'Asignando…' : 'Asignar encargo'}
+          {pendiente ? etiquetas.enviando : etiquetas.enviar}
         </Button>
       </DialogFooter>
     </form>
