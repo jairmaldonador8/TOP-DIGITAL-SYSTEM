@@ -143,4 +143,12 @@ describe('idsParaArchivar', () => {
     ]
     expect(idsParaArchivar(existentes, recibidas)).toEqual(['db-2'])
   })
+
+  it('con recibidas vacio regresa TODOS los ids — por eso el orquestador salta el archivado cuando el fetch regresa 0 campanias', () => {
+    const existentes = [
+      { id: 'db-1', meta_campaign_id: '111' },
+      { id: 'db-2', meta_campaign_id: '222' },
+    ]
+    expect(idsParaArchivar(existentes, [])).toEqual(['db-1', 'db-2'])
+  })
 })

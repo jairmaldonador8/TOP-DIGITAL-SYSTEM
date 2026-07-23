@@ -31,7 +31,8 @@ export type FilaCampania = {
   sincronizada_en: string
 }
 
-export type ErrorSync = { cliente: string; mensaje: string }
+/** cliente null = fallo de la corrida completa, no de un cliente. */
+export type ErrorSync = { cliente: string | null; mensaje: string }
 
 export type ResultadoSync = {
   exito: boolean
@@ -75,6 +76,9 @@ export function prepararCampanias(
 /**
  * Ids de filas ya sincronizadas cuyo meta_campaign_id no vino en la
  * respuesta de Meta (fueron borradas/archivadas alla).
+ *
+ * OJO: con recibidas vacio regresa TODOS los ids — por eso el orquestador
+ * salta el archivado cuando el fetch regresa 0 campanias.
  */
 export function idsParaArchivar(
   existentes: { id: string; meta_campaign_id: string | null }[],
@@ -82,145 +86,195 @@ export function idsParaArchivar(
 ): string[] {
   const vigentes = new Set(recibidas.map((c) => c.id))
   return existentes
-    .filter((e) => e.meta_campaign_id !== null && !vigentes.has(e.meta_campaign_id))
+    .filter(
+      (e) => e.meta_campaign_id !== null && !vigentes.has(e.meta_campaign_id)
+    )
     .map((e) => e.id)
+}
+
+type AdminClient = ReturnType<typeof createAdminClient>
+type ClienteVinculado = { id: string; meta_ad_account_id: string }
+
+/**
+ * Trae campanias + insights de un cliente y upsertea campanias y
+ * campania_finanzas. Regresa cuantas filas se actualizaron y lo recibido
+ * de Meta (insumo del paso de archivado). Lanza en cualquier fallo.
+ */
+async function sincronizarCliente(
+  supabase: AdminClient,
+  cliente: ClienteVinculado
+): Promise<{ actualizadas: number; recibidas: CampaniaMeta[] }> {
+  // meta_ad_account_id se guarda con prefijo act_; normalizar por si acaso.
+  const cuenta = cliente.meta_ad_account_id.startsWith('act_')
+    ? cliente.meta_ad_account_id
+    : `act_${cliente.meta_ad_account_id}`
+
+  const recibidas = await obtenerTodos<CampaniaMeta>(`/${cuenta}/campaigns`, {
+    fields: 'id,name,objective,status,effective_status,start_time,stop_time',
+    // IN_PROCESS y WITH_ISSUES son campanias vivas (mapeo.ts las trata
+    // como 'pausada'); pedirlas evita archivarlas en falso por no venir
+    // en la respuesta.
+    effective_status:
+      '["ACTIVE","PAUSED","IN_PROCESS","WITH_ISSUES","ARCHIVED"]',
+    limit: '100',
+  })
+  const insights = await obtenerTodos<InsightCampania>(`/${cuenta}/insights`, {
+    level: 'campaign',
+    fields: 'campaign_id,spend,actions',
+    date_preset: 'maximum',
+  })
+
+  const { filas, gastos } = prepararCampanias(
+    cliente.id,
+    recibidas,
+    insights,
+    new Date().toISOString()
+  )
+  if (filas.length === 0) return { actualizadas: 0, recibidas }
+
+  // Upsert idempotente de campanias.
+  const { data: upsertadas, error: errorUpsert } = await supabase
+    .from('campanias')
+    .upsert(filas, { onConflict: 'meta_campaign_id' })
+    .select('id, meta_campaign_id')
+  if (errorUpsert) throw new Error(errorUpsert.message)
+
+  // Gasto (solo-admin) ligado por el id interno recien devuelto.
+  const finanzas = (upsertadas ?? []).map((fila) => ({
+    campania_id: fila.id,
+    cliente_id: cliente.id,
+    gasto: gastos.get(fila.meta_campaign_id) ?? 0,
+  }))
+  const { error: errorFinanzas } = await supabase
+    .from('campania_finanzas')
+    .upsert(finanzas, { onConflict: 'campania_id' })
+  if (errorFinanzas) throw new Error(errorFinanzas.message)
+
+  return { actualizadas: filas.length, recibidas }
+}
+
+/**
+ * Archiva las campanias ya sincronizadas que no vinieron en la respuesta
+ * de Meta. Solo corre cuando el fetch del cliente funciono.
+ */
+async function archivarAusentes(
+  supabase: AdminClient,
+  clienteId: string,
+  recibidas: CampaniaMeta[]
+): Promise<void> {
+  // Una respuesta vacia — legitima o parcial — nunca debe borrar el
+  // historial del cliente. Las campanias borradas en Meta se archivan en
+  // corridas donde la cuenta si regresa sus demas campanias.
+  if (recibidas.length === 0) return
+
+  const { data: existentes, error: errorExistentes } = await supabase
+    .from('campanias')
+    .select('id, meta_campaign_id')
+    .eq('cliente_id', clienteId)
+    .not('meta_campaign_id', 'is', null)
+  if (errorExistentes) throw new Error(errorExistentes.message)
+
+  const paraArchivar = idsParaArchivar(existentes ?? [], recibidas)
+  if (paraArchivar.length === 0) return
+
+  const { error: errorArchivo } = await supabase
+    .from('campanias')
+    .update({ estado: 'archivada' })
+    .in('id', paraArchivar)
+  if (errorArchivo) throw new Error(errorArchivo.message)
 }
 
 /** Corre el sync completo. Un cliente que falla nunca detiene a los demas. */
 export async function sincronizarMeta(
   disparador: 'cron' | 'manual'
 ): Promise<ResultadoSync> {
-  const supabase = createAdminClient()
-  const limite = Date.now() + PRESUPUESTO_MS
   const errores: ErrorSync[] = []
   let campaniasActualizadas = 0
 
-  // 1. Bitacora: abrir la corrida.
-  const { data: corrida, error: errorCorrida } = await supabase
-    .from('sync_runs')
-    .insert({ disparador })
-    .select('id')
-    .single()
-  if (errorCorrida) {
-    console.error('No se pudo abrir sync_runs:', errorCorrida.message)
-  }
+  try {
+    const supabase = createAdminClient()
+    const limite = Date.now() + PRESUPUESTO_MS
 
-  // 2. Clientes con cuenta de Meta vinculada.
-  const { data: clientes, error: errorClientes } = await supabase
-    .from('clientes')
-    .select('id, meta_ad_account_id')
-    .not('meta_ad_account_id', 'is', null)
-  if (errorClientes) {
-    errores.push({
-      cliente: 'todos',
-      mensaje: `No se pudieron leer los clientes: ${errorClientes.message}`,
-    })
-  }
-
-  for (const [indice, c] of (clientes ?? []).entries()) {
-    // 3. Presupuesto global de tiempo: lo que no alcance queda registrado
-    // y se recoge en la siguiente corrida.
-    if (Date.now() > limite) {
-      for (const pendiente of (clientes ?? []).slice(indice)) {
-        errores.push({
-          cliente: pendiente.id,
-          mensaje:
-            'Presupuesto de tiempo agotado; cliente pendiente para la proxima corrida',
-        })
-      }
-      break
-    }
-
-    try {
-      // meta_ad_account_id se guarda con prefijo act_; normalizar por si acaso.
-      const cuenta = c.meta_ad_account_id.startsWith('act_')
-        ? c.meta_ad_account_id
-        : `act_${c.meta_ad_account_id}`
-
-      const campanias = await obtenerTodos<CampaniaMeta>(
-        `/${cuenta}/campaigns`,
-        {
-          fields:
-            'id,name,objective,status,effective_status,start_time,stop_time',
-          effective_status: '["ACTIVE","PAUSED","ARCHIVED"]',
-          limit: '100',
-        }
-      )
-      const insights = await obtenerTodos<InsightCampania>(
-        `/${cuenta}/insights`,
-        {
-          level: 'campaign',
-          fields: 'campaign_id,spend,actions',
-          date_preset: 'maximum',
-        }
-      )
-
-      const { filas, gastos } = prepararCampanias(
-        c.id,
-        campanias,
-        insights,
-        new Date().toISOString()
-      )
-
-      if (filas.length > 0) {
-        // 4a. Upsert idempotente de campanias.
-        const { data: upsertadas, error: errorUpsert } = await supabase
-          .from('campanias')
-          .upsert(filas, { onConflict: 'meta_campaign_id' })
-          .select('id, meta_campaign_id')
-        if (errorUpsert) throw new Error(errorUpsert.message)
-
-        // 4b. Gasto (solo-admin) ligado por el id interno recien devuelto.
-        const finanzas = (upsertadas ?? []).map((fila) => ({
-          campania_id: fila.id,
-          cliente_id: c.id,
-          gasto: gastos.get(fila.meta_campaign_id) ?? 0,
-        }))
-        const { error: errorFinanzas } = await supabase
-          .from('campania_finanzas')
-          .upsert(finanzas, { onConflict: 'campania_id' })
-        if (errorFinanzas) throw new Error(errorFinanzas.message)
-      }
-
-      // 4c. Archivar las que ya no vinieron de Meta (solo si el fetch
-      // de este cliente funciono: estamos dentro del try).
-      const { data: existentes, error: errorExistentes } = await supabase
-        .from('campanias')
-        .select('id, meta_campaign_id')
-        .eq('cliente_id', c.id)
-        .not('meta_campaign_id', 'is', null)
-      if (errorExistentes) throw new Error(errorExistentes.message)
-
-      const paraArchivar = idsParaArchivar(existentes ?? [], campanias)
-      if (paraArchivar.length > 0) {
-        const { error: errorArchivo } = await supabase
-          .from('campanias')
-          .update({ estado: 'archivada' })
-          .in('id', paraArchivar)
-        if (errorArchivo) throw new Error(errorArchivo.message)
-      }
-
-      campaniasActualizadas += filas.length
-    } catch (error) {
-      errores.push({ cliente: c.id, mensaje: (error as Error).message })
-    }
-  }
-
-  // 5. Cerrar la bitacora.
-  if (corrida) {
-    const { error: errorCierre } = await supabase
+    // 1. Bitacora: abrir la corrida.
+    const { data: corrida, error: errorCorrida } = await supabase
       .from('sync_runs')
-      .update({
-        fin: new Date().toISOString(),
-        campanias_actualizadas: campaniasActualizadas,
-        errores,
-        exito: errores.length === 0,
+      .insert({ disparador })
+      .select('id')
+      .single()
+    if (errorCorrida) {
+      console.error('No se pudo abrir sync_runs:', errorCorrida.message)
+    }
+
+    // 2. Clientes con cuenta de Meta vinculada.
+    const { data: clientes, error: errorClientes } = await supabase
+      .from('clientes')
+      .select('id, meta_ad_account_id')
+      .not('meta_ad_account_id', 'is', null)
+    if (errorClientes) {
+      errores.push({
+        cliente: null,
+        mensaje: `No se pudieron leer los clientes: ${errorClientes.message}`,
       })
-      .eq('id', corrida.id)
-    if (errorCierre) {
-      console.error('No se pudo cerrar sync_runs:', errorCierre.message)
+    }
+
+    for (const [indice, c] of (clientes ?? []).entries()) {
+      // 3. Presupuesto global de tiempo: lo que no alcance queda
+      // registrado y se recoge en la siguiente corrida.
+      if (Date.now() > limite) {
+        for (const pendiente of (clientes ?? []).slice(indice)) {
+          errores.push({
+            cliente: pendiente.id,
+            mensaje:
+              'Presupuesto de tiempo agotado; cliente pendiente para la proxima corrida',
+          })
+        }
+        break
+      }
+
+      try {
+        const { actualizadas, recibidas } = await sincronizarCliente(
+          supabase,
+          c
+        )
+        // Credito antes de archivar: un fallo del archivado no debe
+        // anular las campanias ya subidas de este cliente.
+        campaniasActualizadas += actualizadas
+        await archivarAusentes(supabase, c.id, recibidas)
+      } catch (error) {
+        errores.push({ cliente: c.id, mensaje: (error as Error).message })
+      }
+    }
+
+    // 4. Cerrar la bitacora.
+    if (corrida) {
+      const { error: errorCierre } = await supabase
+        .from('sync_runs')
+        .update({
+          fin: new Date().toISOString(),
+          campanias_actualizadas: campaniasActualizadas,
+          errores,
+          exito: errores.length === 0,
+        })
+        .eq('id', corrida.id)
+      if (errorCierre) {
+        console.error('No se pudo cerrar sync_runs:', errorCierre.message)
+      }
+    }
+
+    return { exito: errores.length === 0, campaniasActualizadas, errores }
+  } catch (error) {
+    // Los callers (cron, server action) nunca deben ver un rechazo.
+    console.error('sincronizarMeta fallo inesperadamente:', error)
+    return {
+      exito: false,
+      campaniasActualizadas,
+      errores: [
+        ...errores,
+        {
+          cliente: null,
+          mensaje: `Fallo inesperado: ${(error as Error).message}`,
+        },
+      ],
     }
   }
-
-  return { exito: errores.length === 0, campaniasActualizadas, errores }
 }
