@@ -148,8 +148,9 @@ export function VistaCalendario({
               <button
                 key={dia.fecha}
                 type="button"
-                onClick={() => suyos.length > 0 && setDiaAbierto(dia.fecha)}
-                aria-label={`${formatoFechaCorta(dia.fecha)}: ${suyos.length} elementos`}
+                disabled={suyos.length === 0}
+                onClick={() => setDiaAbierto(dia.fecha)}
+                aria-label={`${formatoFechaCorta(dia.fecha)}: ${suyos.length} ${suyos.length === 1 ? 'elemento' : 'elementos'}`}
                 className={cn(
                   'flex min-h-14 flex-col items-center gap-1 rounded-lg pt-1.5 outline-none transition-colors sm:min-h-20 sm:items-stretch sm:px-1.5',
                   dia.delMes ? 'text-foreground' : 'text-muted-foreground/40',

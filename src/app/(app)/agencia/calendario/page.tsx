@@ -32,7 +32,7 @@ function aISO(fecha: Date): string {
   return fecha.toISOString().slice(0, 10)
 }
 
-/** Grid lunes-domingo que cubre el mes completo (35 o 42 celdas). */
+/** Grid lunes-domingo que cubre el mes completo (28, 35 o 42 celdas). */
 function diasDelGrid(mes: string, hoy: string): DiaCalendario[] {
   const primero = aDia(`${mes}-01`)
   // getUTCDay: 0=domingo; lunes como inicio de semana.

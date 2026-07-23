@@ -25,16 +25,23 @@ export async function GET(request: NextRequest) {
   }
 
   const hoy = hoyEnMexico()
-  const elementos = await cargarElementos(
-    createAdminClient(),
-    sumarDias(hoy, -60),
-    sumarDias(hoy, 365)
-  )
-
-  return new Response(generarICS(elementos), {
-    headers: {
-      'Content-Type': 'text/calendar; charset=utf-8',
-      'Cache-Control': 'private, max-age=300',
-    },
-  })
+  try {
+    const elementos = await cargarElementos(
+      createAdminClient(),
+      sumarDias(hoy, -60),
+      sumarDias(hoy, 365),
+      'lanzar'
+    )
+    return new Response(generarICS(elementos), {
+      headers: {
+        'Content-Type': 'text/calendar; charset=utf-8',
+        'Cache-Control': 'private, max-age=300',
+      },
+    })
+  } catch (error) {
+    // 500: Google conserva la última copia buena en vez de vaciar el
+    // calendario con un feed incompleto.
+    console.error('Feed ICS falló:', error)
+    return new Response('Error temporal', { status: 500 })
+  }
 }

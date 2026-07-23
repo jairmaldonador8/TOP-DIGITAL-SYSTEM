@@ -127,7 +127,10 @@ export async function cargarElementos(
   // Cliente de sesión (página) o admin (feed): mismas consultas.
   supabase: SupabaseClient,
   desde: string,
-  hasta: string
+  hasta: string,
+  // 'lanzar': el feed ICS responde 500 en vez de servirle a Google un
+  // calendario incompleto con 200 (borraría eventos hasta el refresh).
+  alFallar: 'ignorar' | 'lanzar' = 'ignorar'
 ): Promise<ElementoCalendario[]> {
   const [campanias, encargos, tareas, eventos, integrantes] =
     await Promise.all([
@@ -159,7 +162,10 @@ export async function cargarElementos(
     ])
 
   for (const r of [campanias, encargos, tareas, eventos, integrantes]) {
-    if (r.error) console.error('Error al cargar calendario:', r.error)
+    if (r.error) {
+      console.error('Error al cargar calendario:', r.error)
+      if (alFallar === 'lanzar') throw new Error(r.error.message)
+    }
   }
 
   return construirElementos({

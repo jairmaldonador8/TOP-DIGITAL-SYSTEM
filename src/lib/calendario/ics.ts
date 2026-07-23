@@ -35,14 +35,13 @@ export function plegarLinea(linea: string): string {
   const partes: string[] = []
   let actual = ''
   let octetos = 0
-  let limite = LIMITE
   for (const caracter of linea) {
     const tam = Buffer.byteLength(caracter, 'utf8')
-    if (octetos + tam > limite) {
+    if (octetos + tam > LIMITE) {
       partes.push(actual)
+      // El espacio de continuación cuenta dentro de los 75 octetos.
       actual = ' '
       octetos = 1
-      limite = LIMITE
     }
     actual += caracter
     octetos += tam
