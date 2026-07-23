@@ -25,6 +25,9 @@ GET /act_<id>/campaigns?fields=id,name,objective,status,effective_status,start_t
 
 # Insights de vida completa, nivel campaña (una sola llamada por cuenta)
 GET /act_<id>/insights?level=campaign&fields=campaign_id,spend,actions&date_preset=maximum
+
+# Insights de ventana reciente (semáforo): mismo shape, verificado en vivo v25
+GET /act_<id>/insights?level=campaign&fields=campaign_id,spend,actions&date_preset=last_7d
 ```
 
 - Mapeo de estado: `ACTIVE → activa`; `PAUSED`/`CAMPAIGN_PAUSED` → `pausada`;
