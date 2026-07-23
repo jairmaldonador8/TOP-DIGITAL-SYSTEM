@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 
 import {
   esAdmin,
+  esUuid,
   NO_AUTORIZADO,
   valoresDe,
   type ResultadoAccion,
@@ -20,7 +21,6 @@ const CAMPOS_CAMPANIA = [
   'presupuesto',
 ]
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const FECHA = /^\d{4}-\d{2}-\d{2}$/
 
 /** Abre (crea) una campaña: nace activa y con su fila de finanzas. */
@@ -38,7 +38,7 @@ export async function crearCampania(
   else if (nombre.length > 200) errores.nombre = 'Máximo 200 caracteres'
 
   const clienteId = valores.cliente_id ?? ''
-  if (!UUID.test(clienteId)) errores.cliente_id = 'Elige de qué cliente es'
+  if (!esUuid(clienteId)) errores.cliente_id = 'Elige de qué cliente es'
 
   const fecha = (valores.fecha_inicio ?? '').trim()
   if (fecha && !FECHA.test(fecha)) errores.fecha_inicio = 'Fecha no válida'
@@ -118,7 +118,7 @@ export async function cambiarEstadoCampania(
   if (!(await esAdmin())) {
     return { ok: false, mensaje: 'No tienes permiso para realizar esta acción' }
   }
-  if (!ESTADOS_CAMPANIA.includes(estado) || !UUID.test(campaniaId)) {
+  if (!ESTADOS_CAMPANIA.includes(estado) || !esUuid(campaniaId)) {
     return { ok: false, mensaje: 'Solicitud no válida' }
   }
 

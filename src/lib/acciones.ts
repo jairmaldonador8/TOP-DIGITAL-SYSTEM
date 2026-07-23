@@ -31,6 +31,13 @@ export async function esAdmin(): Promise<boolean> {
   return actual.rol === 'admin'
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/** Valida que un valor tenga forma de UUID antes de usarlo en una query. */
+export function esUuid(valor: string): boolean {
+  return UUID.test(valor)
+}
+
 /** Extrae los campos de texto de un FormData para validar y repoblar. */
 export function valoresDe(
   formData: FormData,

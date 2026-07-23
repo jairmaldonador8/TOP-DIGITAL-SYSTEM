@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 
 import {
   esAdmin,
+  esUuid,
   NO_AUTORIZADO,
   valoresDe,
   type ResultadoAccion,
@@ -12,7 +13,6 @@ import { createClient } from '@/lib/supabase/server'
 
 const CAMPOS_TAREA = ['titulo', 'descripcion', 'cliente_id', 'fecha_limite']
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const FECHA = /^\d{4}-\d{2}-\d{2}$/
 
 export async function crearTarea(
@@ -29,7 +29,7 @@ export async function crearTarea(
   else if (titulo.length > 200) errores.titulo = 'Máximo 200 caracteres'
 
   const clienteId = valores.cliente_id ?? ''
-  if (!UUID.test(clienteId)) errores.cliente_id = 'Elige a qué cliente pertenece'
+  if (!esUuid(clienteId)) errores.cliente_id = 'Elige a qué cliente pertenece'
 
   const fecha = (valores.fecha_limite ?? '').trim()
   if (fecha && !FECHA.test(fecha)) errores.fecha_limite = 'Fecha no válida'
@@ -89,7 +89,7 @@ export async function cambiarEstadoTarea(
   if (!(await esAdmin())) {
     return { ok: false, mensaje: 'No tienes permiso para realizar esta acción' }
   }
-  if (!ESTADOS_TAREA.includes(estado) || !UUID.test(tareaId)) {
+  if (!ESTADOS_TAREA.includes(estado) || !esUuid(tareaId)) {
     return { ok: false, mensaje: 'Solicitud no válida' }
   }
 
