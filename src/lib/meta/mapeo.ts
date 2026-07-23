@@ -15,8 +15,10 @@ export function estadoDesdeMeta(effectiveStatus: string): EstadoCampania {
   if (effectiveStatus === 'ARCHIVED' || effectiveStatus === 'DELETED') {
     return 'archivada'
   }
-  // PAUSED, CAMPAIGN_PAUSED, ADSET_PAUSED y estados intermedios
-  // (IN_PROCESS, WITH_ISSUES, PENDING_REVIEW...): no estan corriendo.
+  // PAUSED e intermedios de nivel campania (IN_PROCESS, WITH_ISSUES):
+  // no estan corriendo. El default tambien absorbe, por defensa, estados
+  // de nivel anuncio/ad set (CAMPAIGN_PAUSED, PENDING_REVIEW...) que la
+  // API no devuelve a nivel campania — sync.ts filtra solo los primeros.
   return 'pausada'
 }
 
