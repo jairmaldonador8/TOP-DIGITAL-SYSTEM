@@ -28,6 +28,7 @@ export type FilaCampania = {
   estado: EstadoCampania
   fecha_inicio: string | null
   leads_generados: number
+  conversaciones_7d: number
   sincronizada_en: string
 }
 
@@ -41,22 +42,31 @@ export type ResultadoSync = {
 }
 
 /**
- * Une cada campania con su insight (por id/campaign_id) y produce las filas
- * a upsertear mas el gasto por meta_campaign_id. Campania sin insight:
- * 0 leads y gasto 0.
+ * Une cada campania con sus insights de vida completa y de los ultimos 7
+ * dias (por id/campaign_id) y produce las filas a upsertear mas el gasto de
+ * cada ventana por meta_campaign_id. Campania sin insight en una ventana:
+ * 0 conversaciones y gasto 0 en esa ventana.
  */
 export function prepararCampanias(
   clienteId: string,
   campanias: CampaniaMeta[],
   insights: InsightCampania[],
+  insights7d: InsightCampania[],
   ahora: string
-): { filas: FilaCampania[]; gastos: Map<string, number> } {
+): {
+  filas: FilaCampania[]
+  gastos: Map<string, number>
+  gastos7d: Map<string, number>
+} {
   const porCampania = new Map(insights.map((i) => [i.campaign_id, i]))
+  const porCampania7d = new Map(insights7d.map((i) => [i.campaign_id, i]))
   const filas: FilaCampania[] = []
   const gastos = new Map<string, number>()
+  const gastos7d = new Map<string, number>()
 
   for (const campania of campanias) {
     const insight = porCampania.get(campania.id)
+    const insight7d = porCampania7d.get(campania.id)
     filas.push({
       cliente_id: clienteId,
       meta_campaign_id: campania.id,
@@ -65,12 +75,14 @@ export function prepararCampanias(
       estado: estadoDesdeMeta(campania.effective_status),
       fecha_inicio: campania.start_time?.slice(0, 10) ?? null,
       leads_generados: conversacionesDe(insight?.actions),
+      conversaciones_7d: conversacionesDe(insight7d?.actions),
       sincronizada_en: ahora,
     })
     gastos.set(campania.id, gastoDe(insight?.spend))
+    gastos7d.set(campania.id, gastoDe(insight7d?.spend))
   }
 
-  return { filas, gastos }
+  return { filas, gastos, gastos7d }
 }
 
 /**
@@ -123,11 +135,21 @@ async function sincronizarCliente(
     fields: 'campaign_id,spend,actions',
     date_preset: 'maximum',
   })
+  // Ventana del semaforo: como va la campania AHORA, no en toda su vida.
+  const insights7d = await obtenerTodos<InsightCampania>(
+    `/${cuenta}/insights`,
+    {
+      level: 'campaign',
+      fields: 'campaign_id,spend,actions',
+      date_preset: 'last_7d',
+    }
+  )
 
-  const { filas, gastos } = prepararCampanias(
+  const { filas, gastos, gastos7d } = prepararCampanias(
     cliente.id,
     recibidas,
     insights,
+    insights7d,
     new Date().toISOString()
   )
   if (filas.length === 0) return { actualizadas: 0, recibidas }
@@ -144,6 +166,7 @@ async function sincronizarCliente(
     campania_id: fila.id,
     cliente_id: cliente.id,
     gasto: gastos.get(fila.meta_campaign_id) ?? 0,
+    gasto_7d: gastos7d.get(fila.meta_campaign_id) ?? 0,
   }))
   const { error: errorFinanzas } = await supabase
     .from('campania_finanzas')

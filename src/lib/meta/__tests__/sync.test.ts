@@ -32,6 +32,7 @@ describe('prepararCampanias', () => {
       'cli-1',
       campanias,
       insights,
+      [],
       AHORA
     )
 
@@ -44,10 +45,75 @@ describe('prepararCampanias', () => {
         estado: 'activa',
         fecha_inicio: '2026-05-02',
         leads_generados: 38,
+        conversaciones_7d: 0,
         sincronizada_en: AHORA,
       },
     ])
     expect(gastos.get('111')).toBe(581.11)
+  })
+
+  it('une la ventana de 7 dias: conversaciones_7d en la fila y gasto en gastos7d', () => {
+    const campanias: CampaniaMeta[] = [
+      { id: '111', name: 'A', effective_status: 'ACTIVE' },
+      { id: '222', name: 'B (sin actividad 7d)', effective_status: 'ACTIVE' },
+    ]
+    const insights7d: InsightCampania[] = [
+      {
+        campaign_id: '111',
+        spend: '691.28',
+        actions: [
+          {
+            action_type: 'onsite_conversion.messaging_conversation_started_7d',
+            value: '21',
+          },
+        ],
+      },
+    ]
+
+    const { filas, gastos7d } = prepararCampanias(
+      'cli-1',
+      campanias,
+      [],
+      insights7d,
+      AHORA
+    )
+
+    expect(filas[0].conversaciones_7d).toBe(21)
+    expect(gastos7d.get('111')).toBe(691.28)
+    // Ausente de la ventana: 0 y 0.
+    expect(filas[1].conversaciones_7d).toBe(0)
+    expect(gastos7d.get('222')).toBe(0)
+  })
+
+  it('campania nueva solo en 7d: vida en 0 pero ventana poblada', () => {
+    const campanias: CampaniaMeta[] = [
+      { id: '333', name: 'Nueva', effective_status: 'ACTIVE' },
+    ]
+    const insights7d: InsightCampania[] = [
+      {
+        campaign_id: '333',
+        spend: '120',
+        actions: [
+          {
+            action_type: 'onsite_conversion.messaging_conversation_started_7d',
+            value: '4',
+          },
+        ],
+      },
+    ]
+
+    const { filas, gastos, gastos7d } = prepararCampanias(
+      'cli-1',
+      campanias,
+      [],
+      insights7d,
+      AHORA
+    )
+
+    expect(filas[0].leads_generados).toBe(0)
+    expect(gastos.get('333')).toBe(0)
+    expect(filas[0].conversaciones_7d).toBe(4)
+    expect(gastos7d.get('333')).toBe(120)
   })
 
   it('campania sin insight: 0 leads y gasto 0 en el Map', () => {
@@ -55,7 +121,7 @@ describe('prepararCampanias', () => {
       { id: '222', name: 'Sin datos', effective_status: 'PAUSED' },
     ]
 
-    const { filas, gastos } = prepararCampanias('cli-1', campanias, [], AHORA)
+    const { filas, gastos } = prepararCampanias('cli-1', campanias, [], [], AHORA)
 
     expect(filas[0].leads_generados).toBe(0)
     expect(gastos.get('222')).toBe(0)
@@ -67,7 +133,7 @@ describe('prepararCampanias', () => {
       { id: '2', name: 'B', effective_status: 'ARCHIVED' },
     ]
 
-    const { filas } = prepararCampanias('cli-1', campanias, [], AHORA)
+    const { filas } = prepararCampanias('cli-1', campanias, [], [], AHORA)
 
     expect(filas.map((f) => f.estado)).toEqual(['activa', 'archivada'])
   })
@@ -83,7 +149,7 @@ describe('prepararCampanias', () => {
       { id: '2', name: 'Sin fecha', effective_status: 'PAUSED' },
     ]
 
-    const { filas } = prepararCampanias('cli-1', campanias, [], AHORA)
+    const { filas } = prepararCampanias('cli-1', campanias, [], [], AHORA)
 
     expect(filas[0].fecha_inicio).toBe('2026-05-02')
     expect(filas[1].fecha_inicio).toBeNull()
@@ -95,7 +161,7 @@ describe('prepararCampanias', () => {
       { id: '2', name: 'B', effective_status: 'PAUSED' },
     ]
 
-    const { filas } = prepararCampanias('cli-1', campanias, [], AHORA)
+    const { filas } = prepararCampanias('cli-1', campanias, [], [], AHORA)
 
     expect(filas.every((f) => f.sincronizada_en === AHORA)).toBe(true)
   })
@@ -108,7 +174,7 @@ describe('prepararCampanias', () => {
       { campaign_id: '9', spend: '581.11' },
     ]
 
-    const { gastos } = prepararCampanias('cli-1', campanias, insights, AHORA)
+    const { gastos } = prepararCampanias('cli-1', campanias, insights, [], AHORA)
 
     expect(gastos.get('9')).toBe(581.11)
   })
