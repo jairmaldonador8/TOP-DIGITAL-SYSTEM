@@ -1,13 +1,20 @@
 import type { Metadata } from 'next'
+import { SendIcon } from 'lucide-react'
 
 import { ETIQUETAS_FUENTE } from '@/components/leads/badges'
+import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { formatoMoneda } from '@/lib/formato'
+import { formatoFechaCorta, formatoMoneda } from '@/lib/formato'
+import {
+  textoWhatsApp,
+  type DatosReporte,
+  type RangoSemana,
+} from '@/lib/reportes/semanal'
 import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = {
@@ -68,15 +75,96 @@ function Barra({
   )
 }
 
+/** Resumen del cron semanal (lunes 8:00) con reenvío manual por WhatsApp. */
+function ResumenSemanal({
+  semanaInicio,
+  datos,
+}: {
+  semanaInicio: string
+  datos: DatosReporte
+}) {
+  // fin = inicio + 6 días (domingo), solo para mostrar.
+  const fin = new Date(`${semanaInicio}T12:00:00Z`)
+  fin.setUTCDate(fin.getUTCDate() + 6)
+  const rango: RangoSemana = {
+    inicio: semanaInicio,
+    fin: fin.toISOString().slice(0, 10),
+    desdeUtc: '',
+    hastaUtc: '',
+  }
+
+  const stats = [
+    { etiqueta: 'Leads nuevos', valor: String(datos.leadsNuevos) },
+    {
+      etiqueta: 'Ventas cerradas',
+      valor: `${datos.cierres} · ${formatoMoneda(datos.montoCerrado)}`,
+    },
+    { etiqueta: 'Seguimientos', valor: String(datos.seguimientos) },
+    {
+      etiqueta: 'Encargos',
+      valor:
+        `${datos.encargosEntregados} entregados · ${datos.encargosAprobados} aprobados` +
+        (datos.encargosAtrasados > 0
+          ? ` · ${datos.encargosAtrasados} atrasados`
+          : ''),
+    },
+  ]
+
+  return (
+    <Card className="border-marca-violeta/30">
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
+        <CardTitle>
+          Resumen semanal · {formatoFechaCorta(rango.inicio)} al{' '}
+          {formatoFechaCorta(rango.fin)}
+        </CardTitle>
+        <Button
+          size="sm"
+          variant="outline"
+          render={
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(textoWhatsApp(datos, rango))}`}
+              target="_blank"
+              rel="noreferrer"
+            />
+          }
+        >
+          <SendIcon data-icon="inline-start" aria-hidden />
+          Compartir por WhatsApp
+        </Button>
+      </CardHeader>
+      <CardContent className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {stats.map((stat) => (
+          <div key={stat.etiqueta}>
+            <p className="text-sm font-semibold">{stat.valor}</p>
+            <p className="text-xs text-muted-foreground">{stat.etiqueta}</p>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  )
+}
+
 export default async function PaginaReportes() {
   const supabase = await createClient()
 
-  const { data, error } = await supabase
-    .from('leads')
-    .select('fuente, etapa, monto_venta, clientes ( nombre_negocio )')
+  const [{ data, error }, reporteRes] = await Promise.all([
+    supabase
+      .from('leads')
+      .select('fuente, etapa, monto_venta, clientes ( nombre_negocio )'),
+    supabase
+      .from('reportes_semanales')
+      .select('semana_inicio, datos')
+      .order('semana_inicio', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ])
 
   if (error) console.error('Error al cargar reportes:', error)
   const leads = (data ?? []) as unknown as FilaLead[]
+  const reporte = reporteRes.data as {
+    semana_inicio: string
+    datos: DatosReporte
+  } | null
 
   const porFuente = new Map<string, number>()
   const porEtapa = new Map<string, number>()
@@ -106,6 +194,13 @@ export default async function PaginaReportes() {
           Resumen histórico de leads y ventas de todos los clientes.
         </p>
       </header>
+
+      {reporte ? (
+        <ResumenSemanal
+          semanaInicio={reporte.semana_inicio}
+          datos={reporte.datos}
+        />
+      ) : null}
 
       {error ? (
         <Card className="items-center py-10 text-center">
