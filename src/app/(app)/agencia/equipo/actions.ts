@@ -24,6 +24,7 @@ import {
   type EstadoEncargo,
   type PrioridadEncargo,
 } from '@/lib/equipo/transiciones'
+import { enviarPushA } from '@/lib/push/push-server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 
@@ -188,6 +189,12 @@ export async function crearEncargo(
     }
   }
 
+  await enviarPushA([valores.asignado_a], {
+    titulo: 'Nuevo encargo',
+    cuerpo: titulo,
+    url: '/equipo',
+  })
+
   revalidarEquipo()
   return { ok: true }
 }
@@ -231,7 +238,15 @@ export async function enviarMensajeATrabajador(
     autor_nombre: actual.nombre ?? 'Top Digital',
     texto: limpio,
   })
-  if (error) console.error('Error al enviar mensaje a trabajador:', error)
+  if (error) {
+    console.error('Error al enviar mensaje a trabajador:', error)
+  } else {
+    await enviarPushA([trabajadorId], {
+      titulo: actual.nombre ?? 'Top Digital',
+      cuerpo: limpio.slice(0, 120),
+      url: '/equipo',
+    })
+  }
   revalidatePath('/agencia/equipo')
 }
 
@@ -418,7 +433,7 @@ export async function revisarEncargo(
   const supabase = await createClient()
   const { data: encargo } = await supabase
     .from('encargos')
-    .select('id, estado')
+    .select('id, titulo, estado, asignado_a')
     .eq('id', encargoId)
     .maybeSingle()
   if (!encargo) return { ok: false, mensaje: 'El encargo no existe' }
@@ -444,6 +459,16 @@ export async function revisarEncargo(
     console.error('Error al revisar encargo:', error)
     return { ok: false, mensaje: 'No se pudo guardar la revisión' }
   }
+
+  await enviarPushA([encargo.asignado_a], {
+    titulo:
+      veredicto === 'aprobado' ? 'Encargo aprobado ✓' : 'Cambios solicitados',
+    cuerpo:
+      veredicto === 'aprobado'
+        ? `"${encargo.titulo}" quedó aprobado`
+        : `"${encargo.titulo}": ${nota.slice(0, 100)}`,
+    url: '/equipo',
+  })
 
   revalidarEquipo()
   return { ok: true }

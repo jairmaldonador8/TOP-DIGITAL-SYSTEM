@@ -15,6 +15,7 @@ import {
   puedeTransicionar,
   type EstadoEncargo,
 } from '@/lib/equipo/transiciones'
+import { enviarPushA, idsAdmins } from '@/lib/push/push-server'
 import { createClient } from '@/lib/supabase/server'
 
 export type ResultadoAvance = { ok: true } | { ok: false; mensaje: string }
@@ -40,7 +41,7 @@ export async function avanzarEncargo(
   const supabase = await createClient()
   const { data: encargo } = await supabase
     .from('encargos')
-    .select('id, estado, asignado_a')
+    .select('id, titulo, estado, asignado_a')
     .eq('id', encargoId)
     .maybeSingle()
 
@@ -63,6 +64,15 @@ export async function avanzarEncargo(
   if (error) {
     console.error('Error al avanzar encargo:', error)
     return { ok: false, mensaje: 'No se pudo guardar, intenta de nuevo' }
+  }
+
+  if (a === 'entregado') {
+    const actualNombre = (await usuarioActual()).nombre ?? 'Un integrante'
+    await enviarPushA(await idsAdmins(), {
+      titulo: 'Encargo entregado',
+      cuerpo: `${actualNombre} entregó "${encargo.titulo}" — listo para revisar`,
+      url: '/agencia/equipo',
+    })
   }
 
   revalidatePath('/equipo', 'layout')
@@ -144,7 +154,15 @@ export async function enviarMensajeEquipo(formData: FormData) {
     autor_nombre: actual.nombre ?? 'Integrante',
     texto: limpio,
   })
-  if (error) console.error('Error al enviar mensaje de equipo:', error)
+  if (error) {
+    console.error('Error al enviar mensaje de equipo:', error)
+  } else {
+    await enviarPushA(await idsAdmins(), {
+      titulo: actual.nombre ?? 'Mensaje del equipo',
+      cuerpo: limpio.slice(0, 120),
+      url: '/agencia/equipo',
+    })
+  }
   revalidatePath('/equipo', 'layout')
 }
 

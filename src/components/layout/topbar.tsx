@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation'
 import { Bell, LogOut, Menu } from 'lucide-react'
 
 import { cerrarSesion } from '@/app/login/actions'
+import { ActivarPush } from '@/components/layout/activar-push'
 import {
   elementoActivo,
   iniciales,
@@ -153,6 +154,10 @@ export function Topbar({
       <p className="min-w-0 flex-1 truncate text-base font-semibold tracking-tight lg:hidden">
         {activo?.label ?? 'Panel'}
       </p>
+
+      {/* Push de este dispositivo (se oculta solo si el navegador no lo
+          soporta o faltan llaves VAPID). */}
+      <ActivarPush />
 
       {/* Campana de notificaciones: marcador estático hasta que el layout
           pase la campanita real vía `acciones` (tarea posterior). */}

@@ -4,6 +4,7 @@
  */
 import type { NextRequest } from 'next/server'
 
+import { enviarPushA, idsAdmins } from '@/lib/push/push-server'
 import { generarReporteSemanal } from '@/lib/reportes/semanal-server'
 
 export const maxDuration = 60
@@ -16,5 +17,12 @@ export async function GET(request: NextRequest) {
   }
 
   const { rango, datos } = await generarReporteSemanal(new Date())
+
+  await enviarPushA(await idsAdmins(), {
+    titulo: 'Tu resumen semanal está listo 📊',
+    cuerpo: `${datos.leadsNuevos} leads, ${datos.cierres} cierres la semana pasada — tócalo para verlo`,
+    url: '/agencia/reportes',
+  })
+
   return Response.json({ semana: rango.inicio, leads: datos.leadsNuevos })
 }
