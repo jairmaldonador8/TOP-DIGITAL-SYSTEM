@@ -11,6 +11,8 @@ import {
 } from '@/lib/acciones'
 import { usuarioActual } from '@/lib/auth/usuario-actual'
 import { validarUsuarioCliente } from '@/lib/clientes/validacion'
+import { emailBienvenida } from '@/lib/email/bienvenida'
+import { enviarEmail } from '@/lib/email/email-server'
 import {
   borrarCore,
   prepararSubidaCore,
@@ -109,6 +111,15 @@ export async function crearTrabajador(
       valores,
     }
   }
+
+  // Bienvenida con sus accesos (best-effort, no bloquea el alta).
+  const correo = emailBienvenida({
+    nombre: resultado.datos.nombre,
+    puesto,
+    email: resultado.datos.email,
+    password: resultado.datos.password,
+  })
+  await enviarEmail(resultado.datos.email, correo.asunto, correo.html)
 
   revalidarEquipo()
   return { ok: true, email: resultado.datos.email }
