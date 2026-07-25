@@ -12,6 +12,13 @@ import {
 import { usuarioActual } from '@/lib/auth/usuario-actual'
 import { validarUsuarioCliente } from '@/lib/clientes/validacion'
 import {
+  borrarCore,
+  prepararSubidaCore,
+  registrarCore,
+  type PreparacionSubida,
+  type ResultadoEvidencia,
+} from '@/lib/equipo/evidencia-server'
+import {
   PRIORIDADES_ENCARGO,
   puedeTransicionar,
   type EstadoEncargo,
@@ -333,6 +340,57 @@ export async function editarEncargo(
 
   revalidarEquipo()
   return { ok: true }
+}
+
+/** Evidencia lado dueño (spec 2026-07-25): mismas actions que el equipo
+ * pero con rol admin (sin restricción de estado salvo aprobado). */
+export async function prepararSubidaEvidencia(
+  encargoId: string,
+  mime: string,
+  tamano: number
+): Promise<PreparacionSubida> {
+  const actual = await usuarioActual()
+  const miId = typeof actual.claims?.sub === 'string' ? actual.claims.sub : null
+  if (actual.rol !== 'admin' || !miId) {
+    return { ok: false, mensaje: 'No tienes permiso para realizar esta acción' }
+  }
+  return prepararSubidaCore('admin', miId, encargoId, mime, tamano)
+}
+
+export async function registrarEvidencia(
+  encargoId: string,
+  ruta: string,
+  nombre: string,
+  mime: string
+): Promise<ResultadoEvidencia> {
+  const actual = await usuarioActual()
+  const miId = typeof actual.claims?.sub === 'string' ? actual.claims.sub : null
+  if (actual.rol !== 'admin' || !miId) {
+    return { ok: false, mensaje: 'No tienes permiso para realizar esta acción' }
+  }
+  const resultado = await registrarCore(
+    'admin',
+    miId,
+    encargoId,
+    ruta,
+    nombre,
+    mime
+  )
+  if (resultado.ok) revalidarEquipo()
+  return resultado
+}
+
+export async function borrarEvidencia(
+  adjuntoId: string
+): Promise<ResultadoEvidencia> {
+  const actual = await usuarioActual()
+  const miId = typeof actual.claims?.sub === 'string' ? actual.claims.sub : null
+  if (actual.rol !== 'admin' || !miId) {
+    return { ok: false, mensaje: 'No tienes permiso para realizar esta acción' }
+  }
+  const resultado = await borrarCore('admin', miId, adjuntoId)
+  if (resultado.ok) revalidarEquipo()
+  return resultado
 }
 
 export type ResultadoRevision = { ok: true } | { ok: false; mensaje: string }

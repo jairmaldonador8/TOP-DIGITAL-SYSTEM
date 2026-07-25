@@ -17,6 +17,10 @@ import {
 } from '@/components/equipo/tarjeta-integrante'
 import { Card } from '@/components/ui/card'
 import { usuarioActual } from '@/lib/auth/usuario-actual'
+import {
+  firmarAdjuntos,
+  type FilaAdjunto,
+} from '@/lib/equipo/evidencia-server'
 import type { EstadoEncargo } from '@/lib/equipo/transiciones'
 import { createClient } from '@/lib/supabase/server'
 
@@ -47,7 +51,7 @@ export default async function PaginaEquipoAgencia() {
   const miId = typeof actual.claims?.sub === 'string' ? actual.claims.sub : null
   const supabase = await createClient()
 
-  const [integrantesRes, encargosRes, clientesRes, mensajesRes] =
+  const [integrantesRes, encargosRes, clientesRes, mensajesRes, adjuntosRes] =
     await Promise.all([
     supabase
       .from('usuarios')
@@ -71,6 +75,10 @@ export default async function PaginaEquipoAgencia() {
       .select('id, trabajador_id, autor_id, autor_nombre, texto, leido, created_at')
       .order('created_at', { ascending: false })
       .limit(300),
+    supabase
+      .from('encargo_adjuntos')
+      .select('id, encargo_id, nombre, ruta, mime, tamano_bytes, subido_por')
+      .order('created_at'),
   ])
 
   if (integrantesRes.error) {
@@ -102,6 +110,24 @@ export default async function PaginaEquipoAgencia() {
     mensajesPorHilo.set(fila.trabajador_id, hilo)
   }
 
+  // Solo la bandeja muestra evidencia: se firman URLs únicamente para
+  // los encargos entregados (firmar todo crecería sin necesidad).
+  const idsEntregados = new Set(
+    encargos.filter((e) => e.estado === 'entregado').map((e) => e.id)
+  )
+  const adjuntosFirmados = await firmarAdjuntos(
+    ((adjuntosRes.data ?? []) as FilaAdjunto[]).filter((f) =>
+      idsEntregados.has(f.encargo_id)
+    ),
+    miId
+  )
+  const adjuntosPorEncargo = new Map<string, typeof adjuntosFirmados>()
+  for (const adjunto of adjuntosFirmados) {
+    const lista = adjuntosPorEncargo.get(adjunto.encargoId) ?? []
+    lista.push(adjunto)
+    adjuntosPorEncargo.set(adjunto.encargoId, lista)
+  }
+
   const entregas: EntregaView[] = encargos
     .filter((e) => e.estado === 'entregado')
     .sort((a, b) => (a.entregado_en ?? '').localeCompare(b.entregado_en ?? ''))
@@ -112,6 +138,7 @@ export default async function PaginaEquipoAgencia() {
       trabajador: nombreIntegrante.get(e.asignado_a) ?? 'Integrante',
       cliente: e.cliente_id ? (nombreCliente.get(e.cliente_id) ?? null) : null,
       entregadoEn: e.entregado_en,
+      adjuntos: adjuntosPorEncargo.get(e.id) ?? [],
     }))
 
   return (

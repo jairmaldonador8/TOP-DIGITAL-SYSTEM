@@ -5,6 +5,13 @@ import { revalidatePath } from 'next/cache'
 import { esUuid } from '@/lib/acciones'
 import { usuarioActual } from '@/lib/auth/usuario-actual'
 import {
+  borrarCore,
+  prepararSubidaCore,
+  registrarCore,
+  type PreparacionSubida,
+  type ResultadoEvidencia,
+} from '@/lib/equipo/evidencia-server'
+import {
   puedeTransicionar,
   type EstadoEncargo,
 } from '@/lib/equipo/transiciones'
@@ -61,6 +68,63 @@ export async function avanzarEncargo(
   revalidatePath('/equipo', 'layout')
   revalidatePath('/agencia', 'layout')
   return { ok: true }
+}
+
+/** Evidencia (spec 2026-07-25): el archivo sube directo a Storage con URL
+ * firmada; estas actions solo validan, firman y registran. */
+export async function prepararSubidaEvidencia(
+  encargoId: string,
+  mime: string,
+  tamano: number
+): Promise<PreparacionSubida> {
+  const actual = await usuarioActual()
+  const miId = typeof actual.claims?.sub === 'string' ? actual.claims.sub : null
+  if (actual.rol !== 'equipo' || !miId) {
+    return { ok: false, mensaje: 'No tienes permiso para realizar esta acción' }
+  }
+  return prepararSubidaCore('equipo', miId, encargoId, mime, tamano)
+}
+
+export async function registrarEvidencia(
+  encargoId: string,
+  ruta: string,
+  nombre: string,
+  mime: string
+): Promise<ResultadoEvidencia> {
+  const actual = await usuarioActual()
+  const miId = typeof actual.claims?.sub === 'string' ? actual.claims.sub : null
+  if (actual.rol !== 'equipo' || !miId) {
+    return { ok: false, mensaje: 'No tienes permiso para realizar esta acción' }
+  }
+  const resultado = await registrarCore(
+    'equipo',
+    miId,
+    encargoId,
+    ruta,
+    nombre,
+    mime
+  )
+  if (resultado.ok) {
+    revalidatePath('/equipo', 'layout')
+    revalidatePath('/agencia', 'layout')
+  }
+  return resultado
+}
+
+export async function borrarEvidencia(
+  adjuntoId: string
+): Promise<ResultadoEvidencia> {
+  const actual = await usuarioActual()
+  const miId = typeof actual.claims?.sub === 'string' ? actual.claims.sub : null
+  if (actual.rol !== 'equipo' || !miId) {
+    return { ok: false, mensaje: 'No tienes permiso para realizar esta acción' }
+  }
+  const resultado = await borrarCore('equipo', miId, adjuntoId)
+  if (resultado.ok) {
+    revalidatePath('/equipo', 'layout')
+    revalidatePath('/agencia', 'layout')
+  }
+  return resultado
 }
 
 /** El trabajador escribe en su hilo con el dueño. */

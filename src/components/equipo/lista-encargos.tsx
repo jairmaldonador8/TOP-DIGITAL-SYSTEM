@@ -9,6 +9,10 @@ import {
 import { toast } from 'sonner'
 
 import { avanzarEncargo } from '@/app/(app)/equipo/actions'
+import {
+  EvidenciaEncargo,
+  type AdjuntoView,
+} from '@/components/equipo/evidencia-encargo'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -20,6 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { puedeAdjuntar } from '@/lib/equipo/evidencia'
 import type {
   EstadoEncargo,
   PrioridadEncargo,
@@ -36,6 +41,7 @@ export type EncargoView = {
   fechaLimite: string | null
   comentarioRevision: string | null
   cliente: { nombre: string; giro: string | null; descripcion: string | null } | null
+  adjuntos: AdjuntoView[]
 }
 
 const ETIQUETA_ESTADO: Record<EstadoEncargo, string> = {
@@ -81,7 +87,10 @@ function accionDe(estado: EstadoEncargo): {
  * dialog y el botón de avance del ciclo. Los aprobados viven colapsados.
  */
 export function ListaEncargos({ encargos }: { encargos: EncargoView[] }) {
-  const [abierto, setAbierto] = React.useState<EncargoView | null>(null)
+  // Se guarda el id (no el objeto): tras revalidar, el dialog abierto
+  // muestra los datos frescos (p. ej. evidencia recién subida).
+  const [abiertoId, setAbiertoId] = React.useState<string | null>(null)
+  const abierto = encargos.find((e) => e.id === abiertoId) ?? null
   const [verAprobados, setVerAprobados] = React.useState(false)
 
   const activos = encargos.filter((e) => e.estado !== 'aprobado')
@@ -117,7 +126,7 @@ export function ListaEncargos({ encargos }: { encargos: EncargoView[] }) {
             >
               <button
                 type="button"
-                onClick={() => setAbierto(encargo)}
+                onClick={() => setAbiertoId(encargo.id)}
                 className="w-full text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
               >
                 <Card className="px-4 py-3.5 transition-colors hover:bg-muted/40">
@@ -189,7 +198,7 @@ export function ListaEncargos({ encargos }: { encargos: EncargoView[] }) {
         </div>
       ) : null}
 
-      <DetalleEncargo encargo={abierto} onCerrar={() => setAbierto(null)} />
+      <DetalleEncargo encargo={abierto} onCerrar={() => setAbiertoId(null)} />
     </>
   )
 }
@@ -257,6 +266,13 @@ function DetalleEncargo({
             {encargo.descripcion ? (
               <p className="text-sm whitespace-pre-wrap">{encargo.descripcion}</p>
             ) : null}
+
+            <EvidenciaEncargo
+              encargoId={encargo.id}
+              adjuntos={encargo.adjuntos}
+              puedeEditar={puedeAdjuntar('equipo', encargo.estado)}
+              modo="equipo"
+            />
 
             {encargo.cliente ? (
               <div className="rounded-lg bg-secondary/60 px-3 py-2.5 text-sm">

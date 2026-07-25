@@ -5,6 +5,10 @@ import { CheckIcon, InboxIcon, UndoIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { revisarEncargo } from '@/app/(app)/agencia/equipo/actions'
+import {
+  EvidenciaEncargo,
+  type AdjuntoView,
+} from '@/components/equipo/evidencia-encargo'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -26,6 +30,7 @@ export type EntregaView = {
   trabajador: string
   cliente: string | null
   entregadoEn: string | null
+  adjuntos: AdjuntoView[]
 }
 
 /**
@@ -55,7 +60,7 @@ export function BandejaRevision({ entregas }: { entregas: EntregaView[] }) {
       <ul className="flex flex-col gap-2">
         {entregas.map((entrega) => (
           <li key={entrega.id}>
-            <Card className="px-3.5 py-3">
+            <Card className="gap-2 px-3.5 py-3">
               <CardContent className="flex flex-col gap-2 p-0 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{entrega.titulo}</p>
@@ -87,6 +92,12 @@ export function BandejaRevision({ entregas }: { entregas: EntregaView[] }) {
                   </Button>
                 </div>
               </CardContent>
+              <EvidenciaEncargo
+                encargoId={entrega.id}
+                adjuntos={entrega.adjuntos}
+                puedeEditar
+                modo="admin"
+              />
             </Card>
           </li>
         ))}

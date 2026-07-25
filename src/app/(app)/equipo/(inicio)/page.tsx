@@ -7,6 +7,10 @@ import {
 import { Card } from '@/components/ui/card'
 import { CifraAnimada } from '@/components/paneles/cifra-animada'
 import { usuarioActual } from '@/lib/auth/usuario-actual'
+import {
+  firmarAdjuntos,
+  type FilaAdjunto,
+} from '@/lib/equipo/evidencia-server'
 import type {
   EstadoEncargo,
   PrioridadEncargo,
@@ -50,13 +54,18 @@ export default async function PaginaEquipo() {
 
   // RLS limita a los encargos propios; la ficha de clientes llega por la
   // RPC segura (solo clientes con encargo del trabajador, 4 columnas).
-  const [encargosRes, fichasRes] = await Promise.all([
+  const [encargosRes, fichasRes, adjuntosRes] = await Promise.all([
     supabase
       .from('encargos')
       .select(
         'id, titulo, descripcion, prioridad, estado, fecha_limite, comentario_revision, cliente_id, aprobado_en, created_at'
       ),
     supabase.rpc('ficha_clientes_equipo'),
+    // RLS limita a adjuntos de encargos propios.
+    supabase
+      .from('encargo_adjuntos')
+      .select('id, encargo_id, nombre, ruta, mime, tamano_bytes, subido_por')
+      .order('created_at'),
   ])
 
   if (encargosRes.error) {
@@ -67,6 +76,18 @@ export default async function PaginaEquipo() {
   const fichas = new Map(
     ((fichasRes.data ?? []) as FichaCliente[]).map((f) => [f.id, f])
   )
+
+  const miId = typeof actual.claims?.sub === 'string' ? actual.claims.sub : null
+  const adjuntosFirmados = await firmarAdjuntos(
+    (adjuntosRes.data ?? []) as FilaAdjunto[],
+    miId
+  )
+  const adjuntosPorEncargo = new Map<string, typeof adjuntosFirmados>()
+  for (const adjunto of adjuntosFirmados) {
+    const lista = adjuntosPorEncargo.get(adjunto.encargoId) ?? []
+    lista.push(adjunto)
+    adjuntosPorEncargo.set(adjunto.encargoId, lista)
+  }
 
   const encargos: EncargoView[] = filas
     .map((fila) => {
@@ -86,6 +107,7 @@ export default async function PaginaEquipo() {
               descripcion: ficha.descripcion_publica,
             }
           : null,
+        adjuntos: adjuntosPorEncargo.get(fila.id) ?? [],
       }
     })
     .sort(
