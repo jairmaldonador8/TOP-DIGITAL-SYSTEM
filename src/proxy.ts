@@ -3,6 +3,28 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 import { AREA_POR_ROL, rolDesdeClaims, rolPuedeAcceder } from '@/lib/auth/redirect'
 
+/**
+ * Rutas del sitio público de la agencia (grupo `(sitio)`). Se listan aquí
+ * y no se derivan del árbol de archivos porque el proxy corre antes del
+ * router: cada sección nueva del sitio hay que agregarla a esta lista o
+ * mandará a /login a quien no tenga sesión.
+ */
+const RUTAS_PUBLICAS = [
+  '/',
+  '/login',
+  '/servicios',
+  '/casos',
+  '/blog',
+  '/redes',
+  '/agendar',
+]
+
+function esRutaPublica(path: string): boolean {
+  return RUTAS_PUBLICAS.some(
+    (ruta) => path === ruta || (ruta !== '/' && path.startsWith(`${ruta}/`))
+  )
+}
+
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
@@ -47,9 +69,9 @@ export async function proxy(request: NextRequest) {
     return response
   }
 
-  // Sin sesión: solo la landing y /login son accesibles.
-  const esPublica = path === '/' || path === '/login'
-  if (!claims && !esPublica) {
+  // Sin sesión: el sitio público de la agencia y /login son accesibles.
+  // El resto (las áreas de la plataforma) exige sesión.
+  if (!claims && !esRutaPublica(path)) {
     return redirigir('/login')
   }
 
