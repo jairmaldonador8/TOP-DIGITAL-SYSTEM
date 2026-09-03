@@ -26,9 +26,15 @@ export type Servicio = {
   periodo: 'unico' | 'mes'
   /** Se ofrece dentro del paquete premium de departamento externo. */
   enPremium: boolean
+  /**
+   * Si hoy se ofrece. Un servicio en pausa conserva su ficha completa aquí
+   * pero desaparece del sitio: no se lista, no tiene página y no cuenta
+   * dentro del paquete premium. Reactivarlo es cambiar este valor.
+   */
+  activo: boolean
 }
 
-export const SERVICIOS: Servicio[] = [
+const CATALOGO: Servicio[] = [
   {
     slug: 'branding',
     nombre: 'Branding e identidad de marca',
@@ -63,6 +69,7 @@ export const SERVICIOS: Servicio[] = [
     desde: 3400,
     periodo: 'unico',
     enPremium: true,
+    activo: true,
   },
   {
     slug: 'paginas-web',
@@ -98,6 +105,7 @@ export const SERVICIOS: Servicio[] = [
     desde: 5400,
     periodo: 'unico',
     enPremium: true,
+    activo: true,
   },
   {
     slug: 'tiendas-online',
@@ -133,6 +141,7 @@ export const SERVICIOS: Servicio[] = [
     desde: 11400,
     periodo: 'unico',
     enPremium: false,
+    activo: true,
   },
   {
     slug: 'chatbots-ia',
@@ -168,6 +177,7 @@ export const SERVICIOS: Servicio[] = [
     desde: 17900,
     periodo: 'unico',
     enPremium: false,
+    activo: true,
   },
   {
     slug: 'sistemas-y-software',
@@ -203,6 +213,7 @@ export const SERVICIOS: Servicio[] = [
     desde: 29900,
     periodo: 'unico',
     enPremium: false,
+    activo: true,
   },
   {
     slug: 'meta-ads',
@@ -238,6 +249,7 @@ export const SERVICIOS: Servicio[] = [
     desde: 9000,
     periodo: 'mes',
     enPremium: true,
+    activo: true,
   },
   {
     slug: 'google-ads',
@@ -272,7 +284,8 @@ export const SERVICIOS: Servicio[] = [
     ],
     desde: 14000,
     periodo: 'mes',
-    enPremium: true,
+    enPremium: false,
+    activo: false,
   },
   {
     slug: 'departamento-marketing',
@@ -309,8 +322,19 @@ export const SERVICIOS: Servicio[] = [
     desde: 90000,
     periodo: 'mes',
     enPremium: false,
+    activo: true,
   },
 ]
+
+/**
+ * Los servicios que hoy se ofrecen. Todo el sitio lee de aquí: las
+ * tarjetas del inicio, la página de servicios, el formulario y el footer.
+ * Un servicio en pausa sigue en `CATALOGO` pero no sale por aquí.
+ */
+export const SERVICIOS = CATALOGO.filter((s) => s.activo)
+
+/** Los que entran en el paquete de departamento externo, ya filtrados. */
+export const SERVICIOS_PREMIUM = SERVICIOS.filter((s) => s.enPremium)
 
 export function servicioPorSlug(slug: string) {
   return SERVICIOS.find((s) => s.slug === slug)

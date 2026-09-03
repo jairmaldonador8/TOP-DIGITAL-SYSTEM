@@ -1,13 +1,14 @@
 import { BotonCta } from '@/components/sitio/cta'
 import { Foto } from '@/components/sitio/foto'
 import { Revelar } from '@/components/sitio/revelar'
-import { CERTIFICACIONES } from '@/lib/sitio/contenido'
+import { CarruselCertificaciones } from '@/components/sitio/certificaciones'
 
 /**
- * Quiénes somos y qué hacemos: la historia corta de la agencia, la prueba
- * de experiencia (certificaciones) y fotos reales del equipo y de los
- * proyectos. Es la sección que convierte "otra agencia más" en "estos
- * saben lo que hacen".
+ * Quiénes somos y qué hacemos. El texto va deliberadamente corto: dos
+ * párrafos que sueltan las cifras que importan y cierran con la regla de
+ * honestidad, porque la trayectoria ya la cuentan las certificaciones y
+ * las fotos de al lado. Es la sección que convierte "otra agencia más" en
+ * "estos saben lo que hacen".
  */
 export function QuienesSomos() {
   return (
@@ -17,7 +18,9 @@ export function QuienesSomos() {
     >
       <div className="mx-auto w-full max-w-7xl px-5 sm:px-8">
         <div className="grid gap-14 lg:grid-cols-[1fr_1fr] lg:gap-20">
-          <Revelar>
+          {/* min-w-0: sin esto el item de la rejilla toma el ancho intrinseco
+              del carrusel de certificaciones (3,840 px) y desborda la pagina. */}
+          <Revelar className="min-w-0">
             <p className="text-[0.68rem] font-semibold tracking-[0.24em] text-muted-foreground uppercase">
               Quiénes somos
             </p>
@@ -28,22 +31,15 @@ export function QuienesSomos() {
             </h2>
             <div className="mt-7 space-y-5 text-base leading-relaxed text-muted-foreground">
               <p>
-                Top Digital nació hace más de cinco años con una idea simple:
-                que un negocio bien hecho merece verse y venderse como lo que
-                es. Empezamos resolviendo campañas para negocios locales y hoy
-                somos el equipo completo de marketing, marca y tecnología de más
-                de cien empresas en todo México.
+                Cinco años, más de cien empresas en todo México y más de un
+                millón de pesos invertidos en anuncios de nuestros clientes. Esa
+                cifra no es presumir presupuesto: es la escuela que nos enseñó
+                qué funciona en cada giro y cuánto cuesta de verdad un cliente
+                nuevo.
               </p>
               <p>
-                En el camino hemos invertido más de un millón de pesos en
-                anuncios de nuestros clientes. Esa cifra no es presumir
-                presupuesto: es la escuela que nos enseñó qué funciona en cada
-                giro, cuánto cuesta de verdad un cliente nuevo y en qué momento
-                una campaña deja de ser rentable.
-              </p>
-              <p>
-                Trabajamos con una regla que nos ha costado clientes y nos ha
-                ganado otros mejores:{' '}
+                Y una regla que nos ha costado clientes y nos ha ganado otros
+                mejores:{' '}
                 <strong className="text-foreground">
                   si no podemos ayudarte, te lo decimos en la primera llamada
                 </strong>
@@ -55,19 +51,7 @@ export function QuienesSomos() {
               <p className="text-[0.68rem] font-semibold tracking-[0.24em] text-muted-foreground uppercase">
                 Certificaciones
               </p>
-              <ul className="mt-4 flex flex-wrap gap-2.5">
-                {CERTIFICACIONES.map(({ nombre, detalle }) => (
-                  <li
-                    key={nombre}
-                    className="rounded-full border border-white/12 bg-white/5 px-4 py-2"
-                  >
-                    <span className="text-sm font-semibold">{nombre}</span>
-                    <span className="ml-2 text-xs text-muted-foreground">
-                      {detalle}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <CarruselCertificaciones />
             </div>
 
             <div className="mt-10">

@@ -7,6 +7,7 @@ import { Menu, X } from 'lucide-react'
 
 import { BotonCta } from '@/components/sitio/cta'
 import { Lockup } from '@/components/sitio/marca'
+import { URL_LOGIN } from '@/lib/sitio/plataforma'
 
 const SECCIONES = [
   { href: '/servicios', texto: 'Servicios' },
@@ -79,7 +80,7 @@ export function NavSitio() {
 
         <div className="flex items-center gap-2">
           <Link
-            href="/login"
+            href={URL_LOGIN}
             className="hidden rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-white sm:block"
           >
             Iniciar sesión
@@ -121,7 +122,7 @@ export function NavSitio() {
             ))}
             <li>
               <Link
-                href="/login"
+                href={URL_LOGIN}
                 className="block py-4 text-sm font-medium text-muted-foreground"
               >
                 Iniciar sesión

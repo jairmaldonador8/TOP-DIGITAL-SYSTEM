@@ -18,10 +18,6 @@ export function Problemas() {
       id="problemas"
       className="relative overflow-hidden border-t border-white/10 py-20 sm:py-28"
     >
-      <div
-        aria-hidden
-        className="pointer-events-none absolute top-1/3 -left-40 size-[28rem] rounded-full bg-marca-violeta/12 blur-[150px]"
-      />
 
       <div className="relative mx-auto w-full max-w-7xl px-5 sm:px-8">
         <Revelar className="max-w-3xl">

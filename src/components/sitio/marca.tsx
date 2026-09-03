@@ -54,3 +54,21 @@ export function Topi({ pose = 'saluda', className = '', decorativo }: TopiProps)
     />
   )
 }
+
+/**
+ * Firma del estudio que hizo la identidad y el sitio. No es marca de Top
+ * Digital: es el logotipo de VITAstudio, en blanco sobre transparente
+ * porque el pie del sitio siempre es oscuro. El trazo es de línea muy fina,
+ * así que se muestra a un tamaño donde todavía se lee.
+ */
+export function FirmaEstudio({ className = '' }: { className?: string }) {
+  return (
+    <Image
+      src="/marca/vitastudio.png"
+      alt="VITAstudio"
+      width={1200}
+      height={275}
+      className={className}
+    />
+  )
+}

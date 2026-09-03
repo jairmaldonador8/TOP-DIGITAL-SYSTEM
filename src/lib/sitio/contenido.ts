@@ -8,8 +8,8 @@
  */
 
 export const CONTACTO = {
-  whatsapp: '5212206020831',
-  whatsappVisible: '+52 1 220 602 0831',
+  whatsapp: '5218136821820',
+  whatsappVisible: '+52 81 3682 1820',
   correo: 'equipo@topdigital.company',
   sitio: 'www.topdigital.company',
   facebook: 'https://www.facebook.com/profile.php?id=100063772477801',
@@ -111,7 +111,7 @@ export const CASOS: Caso[] = [
     slug: 'caso-2',
     cliente: 'Nombre del cliente',
     giro: 'Giro · ciudad',
-    servicios: ['tiendas-online', 'google-ads'],
+    servicios: ['tiendas-online', 'meta-ads'],
     reto: 'Aquí va el reto con el que llegó el cliente, en una o dos líneas.',
     hicimos:
       'Aquí va lo que realizamos para resolverlo: los servicios entregados y el enfoque.',
@@ -146,34 +146,93 @@ export type Resena = {
   negocio: string
   texto: string
   estrellas: number
+  /** Dónde la dejó el cliente; se muestra como sello en la tarjeta. */
+  fuente: 'google' | 'facebook'
+  /** Texto tal como lo publica la plataforma: "hace 2 meses", "mayo 2026". */
+  fecha: string
   pendiente: boolean
 }
 
-/** PENDIENTE: copiar las reseñas reales desde la página de Facebook. */
+/**
+ * Reseñas REALES de la página de Facebook de Top Digital, transcritas de
+ * las recomendaciones publicadas. El texto va tal cual lo escribió cada
+ * cliente: no se corrige la ortografía porque un testimonio editado deja
+ * de ser un testimonio. Lo único que se retiró son los emojis decorativos
+ * del final, que no cambian lo que dijeron.
+ *
+ * Facebook ya no usa estrellas por reseña sino "recomienda / no
+ * recomienda": las cinco estrellas representan que las siete son
+ * recomendaciones positivas.
+ */
 export const RESENAS: Resena[] = [
   {
-    autor: 'Nombre del cliente',
-    negocio: 'Su negocio',
+    autor: 'Linda Vargas Nails',
+    negocio: '',
     texto:
-      'Aquí va la reseña textual que dejó el cliente en Facebook, sin editar.',
+      'Excelente servicio al cliente justo lo que necesito, es por eso que los elegí por que dan confianza y solucionan problemas. 10/10',
     estrellas: 5,
-    pendiente: true,
+    fuente: 'facebook',
+    fecha: '8 de julio de 2026',
+    pendiente: false,
   },
   {
-    autor: 'Nombre del cliente',
-    negocio: 'Su negocio',
+    autor: 'Ferretería Unioonsa Guadalupe',
+    negocio: '',
     texto:
-      'Aquí va la reseña textual que dejó el cliente en Facebook, sin editar.',
+      'Me gusta mucho el servicio, honestamente no se como le haga no soy experto en eso pero cada ves hay mas clientes locales y muchos mensajes de WhatsApp y muchos se convierten en clientes nuestros o vienen al local.',
     estrellas: 5,
-    pendiente: true,
+    fuente: 'facebook',
+    fecha: '8 de julio de 2026',
+    pendiente: false,
   },
   {
-    autor: 'Nombre del cliente',
-    negocio: 'Su negocio',
+    autor: 'Trafiko',
+    negocio: 'Agencia SEO en Monterrey',
     texto:
-      'Aquí va la reseña textual que dejó el cliente en Facebook, sin editar.',
+      'Si es bueno con lo que hace, y es RENTABLE 100% si vendes servicios sobre todo es 100% rentable con una sola venta que tuve pague el servicio entero y además ese cliente lo tengo mes con mes y pues es un efecto bola de nieve. 100% Recomendado',
     estrellas: 5,
-    pendiente: true,
+    fuente: 'facebook',
+    fecha: '8 de julio de 2026',
+    pendiente: false,
+  },
+  {
+    autor: 'Adriana Aspeitia',
+    negocio: 'Estilista profesional',
+    texto:
+      'Un increíble trato por parte de Tadeo y la agencia, nuestro negocio paso de 0 en redes sociales a tener clientas nuevas cada semana. Si quieres vender más en tu negocio 100% Recomiendo Top Digital',
+    estrellas: 5,
+    fuente: 'facebook',
+    fecha: '28 de mayo de 2026',
+    pendiente: false,
+  },
+  {
+    autor: 'Bryan López Torres',
+    negocio: '',
+    texto:
+      'Además de su atención muy amable, al momento de responder mis dudas, su explicación es muy detallada, atenta y profesional. P.D. El funcionamiento de sus campañas es muy certero, desde la primer semana me ha funcionado.',
+    estrellas: 5,
+    fuente: 'facebook',
+    fecha: '26 de mayo de 2026',
+    pendiente: false,
+  },
+  {
+    autor: 'Emilio De La Garza',
+    negocio: '',
+    texto: 'Atención muy amable, atenta, detallada y profesional. Muy agradecido',
+    estrellas: 5,
+    fuente: 'facebook',
+    fecha: '19 de mayo de 2026',
+    pendiente: false,
+  },
+  {
+    autor: 'MD makeup',
+    negocio: '',
+    texto:
+      'Principalmente los resultados en la primera semana de lanzamiento de campañas, la atención de Tadeo excelente y muy clara en todo momento y el seguimiento dado durante las sesiones recomendable 100%',
+    estrellas: 5,
+    fuente: 'facebook',
+    fecha: '28 de marzo de 2026',
+    pendiente: false,
   },
 ]
 

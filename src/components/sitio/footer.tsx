@@ -1,7 +1,8 @@
 import Link from 'next/link'
 
-import { Lockup } from '@/components/sitio/marca'
+import { FirmaEstudio, Lockup } from '@/components/sitio/marca'
 import { CONTACTO } from '@/lib/sitio/contenido'
+import { URL_LOGIN } from '@/lib/sitio/plataforma'
 import { SERVICIOS } from '@/lib/sitio/servicios'
 
 const REDES = [
@@ -14,7 +15,7 @@ const REDES = [
 
 export function FooterSitio() {
   return (
-    <footer className="border-t border-white/10 bg-[#050505]">
+    <footer className="border-t border-white/10 bg-background">
       <div className="mx-auto w-full max-w-7xl px-5 py-16 sm:px-8">
         <div className="grid gap-12 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div>
@@ -63,7 +64,7 @@ export function FooterSitio() {
                 { href: '/blog', texto: 'Blog' },
                 { href: '/redes', texto: 'Redes sociales' },
                 { href: '/agendar', texto: 'Agendar diagnóstico' },
-                { href: '/login', texto: 'Iniciar sesión' },
+                { href: URL_LOGIN, texto: 'Iniciar sesión' },
               ].map(({ href, texto }) => (
                 <li key={href}>
                   <Link
@@ -124,9 +125,9 @@ export function FooterSitio() {
             © {new Date().getFullYear()} Top Digital. Todos los derechos
             reservados.
           </p>
-          <p>
-            Identidad y sitio por{' '}
-            <span className="font-semibold text-white">VITAstudio</span>
+          <p className="flex items-center gap-2.5">
+            <span>Identidad y sitio por</span>
+            <FirmaEstudio className="h-[0.9rem] w-auto opacity-70 transition-opacity hover:opacity-100 sm:h-4" />
           </p>
         </div>
       </div>

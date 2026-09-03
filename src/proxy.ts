@@ -9,23 +9,46 @@ import { AREA_POR_ROL, rolDesdeClaims, rolPuedeAcceder } from '@/lib/auth/redire
  * router: cada sección nueva del sitio hay que agregarla a esta lista o
  * mandará a /login a quien no tenga sesión.
  */
-const RUTAS_PUBLICAS = [
+const RUTAS_SITIO = [
   '/',
-  '/login',
   '/servicios',
   '/casos',
   '/blog',
   '/redes',
   '/agendar',
+  // Taller de direcciones visuales; se quita junto con /ideas al elegir una.
+  '/ideas',
 ]
 
-function esRutaPublica(path: string): boolean {
-  return RUTAS_PUBLICAS.some(
+const RUTAS_PUBLICAS = [...RUTAS_SITIO, '/login']
+
+/**
+ * Origen de la plataforma (CRM) cuando este despliegue sirve SOLO el sitio
+ * público: el proyecto de Vercel del dominio de la agencia la define y el
+ * del sistema no. Con ella puesta, todo lo que no sea del sitio (login,
+ * áreas, api) se manda al dominio del sistema en vez de servirse aquí.
+ */
+const URL_PLATAFORMA = process.env.NEXT_PUBLIC_URL_PLATAFORMA
+
+function coincide(rutas: string[], path: string): boolean {
+  return rutas.some(
     (ruta) => path === ruta || (ruta !== '/' && path.startsWith(`${ruta}/`))
   )
 }
 
+const esRutaSitio = (path: string) => coincide(RUTAS_SITIO, path)
+const esRutaPublica = (path: string) => coincide(RUTAS_PUBLICAS, path)
+
 export async function proxy(request: NextRequest) {
+  // Despliegue solo-sitio: lo que no es del sitio vive en el otro dominio.
+  if (URL_PLATAFORMA && !esRutaSitio(request.nextUrl.pathname)) {
+    const destino = new URL(
+      request.nextUrl.pathname + request.nextUrl.search,
+      URL_PLATAFORMA
+    )
+    return NextResponse.redirect(destino, 308)
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
