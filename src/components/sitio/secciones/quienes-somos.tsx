@@ -61,20 +61,26 @@ export function QuienesSomos() {
 
           <Revelar delay={120} className="grid grid-cols-2 gap-4 self-start">
             <Foto
-              alt="El equipo de Top Digital"
+              src="/sitio/quienes-somos/equipo-con-cliente.webp"
+              alt="Integrante de Top Digital con el cliente de MD Make Up, los dos sonriendo a la cámara"
               pie="Foto real del equipo trabajando en la oficina"
               ratio="aspect-[3/4]"
               className="col-span-1 row-span-2"
+              sizes="(min-width: 1024px) 25vw, 50vw"
             />
             <Foto
-              alt="Sesión de producción"
+              src="/sitio/quienes-somos/grabacion-entrevista.webp"
+              alt="Grabación de una entrevista con cliente: dos cámaras, luz de estudio y una mesa de trabajo"
               pie="Foto de una grabación o sesión de fotos con cliente"
               ratio="aspect-square"
+              sizes="(min-width: 1024px) 12vw, 25vw"
             />
             <Foto
-              alt="Proyecto entregado"
+              src="/sitio/quienes-somos/sesion-en-planta.webp"
+              alt="Sesión de fotos de producto en la planta de un cliente, con aro de luz y set de madera"
               pie="Foto de un proyecto entregado (local, producto o pantalla)"
               ratio="aspect-square"
+              sizes="(min-width: 1024px) 12vw, 25vw"
             />
           </Revelar>
         </div>

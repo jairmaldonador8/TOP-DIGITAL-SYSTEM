@@ -15,7 +15,7 @@ export const CONTACTO = {
   facebook: 'https://www.facebook.com/profile.php?id=100063772477801',
   facebookResenas:
     'https://www.facebook.com/profile.php?id=100063772477801&sk=reviews&locale=es_LA',
-  instagram: 'https://www.instagram.com/topdigital.mx',
+  instagram: 'https://www.instagram.com/somos.top.digital/',
   tiktok: 'https://www.tiktok.com/@topdigital.mx',
   linkedin: 'https://www.linkedin.com/company/topdigitalmx',
   youtube: 'https://www.youtube.com/@topdigital.mx',
@@ -33,11 +33,33 @@ export const METRICAS = [
   { cifra: '5.0', unidad: '★', etiqueta: 'en reseñas de Facebook' },
 ]
 
+/**
+ * Insignias oficiales de partner. Los logos van sobre placa blanca porque
+ * las guías de marca de Meta y Google exigen fondo claro para la versión
+ * a color; en `public/sitio/certificaciones/` ya están recortados al
+ * borde del logotipo para que se alineen entre sí.
+ */
 export const CERTIFICACIONES = [
-  { nombre: 'Google Partner', detalle: 'Google Ads' },
-  { nombre: 'Meta Business Partner', detalle: 'Meta Ads' },
-  { nombre: 'Shopify Partner', detalle: 'Comercio electrónico' },
-  { nombre: 'Google Analytics', detalle: 'Certificación oficial' },
+  {
+    nombre: 'Google Partner',
+    detalle: 'Google Ads',
+    logo: '/sitio/certificaciones/google-partners.webp',
+  },
+  {
+    nombre: 'Meta Business Partner',
+    detalle: 'Meta Ads',
+    logo: '/sitio/certificaciones/meta-business-partner.webp',
+  },
+  {
+    nombre: 'Shopify Partner',
+    detalle: 'Comercio electrónico',
+    logo: '/sitio/certificaciones/shopify-partners.webp',
+  },
+  {
+    nombre: 'Google Analytics',
+    detalle: 'Certificación oficial',
+    logo: '/sitio/certificaciones/google-analytics.webp',
+  },
 ]
 
 /**

@@ -10,7 +10,7 @@ import { CONTACTO } from '@/lib/sitio/contenido'
 export const CUENTAS = [
   {
     nombre: 'Instagram',
-    cuenta: '@topdigital.mx',
+    cuenta: '@somos.top.digital',
     href: CONTACTO.instagram,
     detalle: 'Consejos y detrás de cámaras',
     tinte: 'from-[#833ab4] via-[#fd1d1d] to-[#fcb045]',

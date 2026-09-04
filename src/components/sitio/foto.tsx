@@ -12,6 +12,7 @@ export function Foto({
   pie,
   className = '',
   ratio = 'aspect-[4/3]',
+  sizes = '(min-width: 1024px) 25vw, 50vw',
 }: {
   src?: string
   alt: string
@@ -19,13 +20,15 @@ export function Foto({
   pie: string
   className?: string
   ratio?: string
+  /** Anchos que ocupa la foto en pantalla, para que next/image sirva el tamaño justo. */
+  sizes?: string
 }) {
   if (src) {
     return (
       <div
         className={`relative overflow-hidden rounded-3xl border border-white/10 ${ratio} ${className}`}
       >
-        <Image src={src} alt={alt} fill className="object-cover" />
+        <Image src={src} alt={alt} fill sizes={sizes} className="object-cover" />
       </div>
     )
   }
