@@ -7,13 +7,16 @@ This version has breaking changes — APIs, conventions, and file structure may 
 # Esta rama es solo de la landing
 
 `sitio-web` es la rama del sitio público de la agencia y **no se mergea**: ni
-hacia `fase-1`/`main` ni desde ellas. El sitio y el CRM comparten repositorio
+hacia `main`/`fase-1` ni desde ellas. El sitio y el CRM comparten repositorio
 por historia, no por diseño, y cada uno vive en su propio proyecto de Vercel:
 
 |         | rama        | proyecto de Vercel   | dominio                  |
 | ------- | ----------- | -------------------- | ------------------------ |
 | Sitio   | `sitio-web` | `top-digital-sitio`  | www.somostopdigital.com  |
-| Sistema | `fase-1`    | `top-digital-system` | www.topdigital.company   |
+| Sistema | `main`      | `top-digital-system` | www.topdigital.company   |
+
+(`fase-1` es la rama de trabajo del sistema y va 4 commits adelante de `main`,
+todavía sin desplegar.)
 
 Aquí se toca el sitio: `src/app/(sitio)`, `src/components/sitio`,
 `src/lib/sitio`, `public/marca`, `public/sitio` y `src/app/favicon.ico`.
