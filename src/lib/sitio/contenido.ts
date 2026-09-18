@@ -16,9 +16,9 @@ export const CONTACTO = {
   facebookResenas:
     'https://www.facebook.com/profile.php?id=100063772477801&sk=reviews&locale=es_LA',
   instagram: 'https://www.instagram.com/somos.top.digital/',
-  tiktok: 'https://www.tiktok.com/@topdigital.mx',
-  linkedin: 'https://www.linkedin.com/company/topdigitalmx',
-  youtube: 'https://www.youtube.com/@topdigital.mx',
+  tiktok: 'https://www.tiktok.com/@somostopdigital',
+  linkedin: 'https://www.linkedin.com/company/somos-top-digital/',
+  youtube: 'https://www.youtube.com/@SomosTopDigital',
 }
 
 /** Mensaje con el que abre el chat desde los CTA del sitio. */
