@@ -20,6 +20,11 @@ describe('emailBienvenida', () => {
     expect(html).toContain('https://www.topdigital.company/login')
   })
 
+  it('lleva el isotipo servido desde el dominio (los correos no pintan SVG)', () => {
+    const { html } = emailBienvenida(datos)
+    expect(html).toContain('https://www.topdigital.company/marca/logo-correo.png')
+  })
+
   it('escapa HTML en los datos del formulario', () => {
     const { html } = emailBienvenida({
       ...datos,

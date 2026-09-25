@@ -87,6 +87,9 @@ export const config = {
      * - favicon.ico y manifest.webmanifest (el navegador pide el manifest
      *   SIN cookies: si pasara por el proxy, redirigiría a /login y la
      *   instalación como app fallaría)
+     * - sw.js (el script del service worker de push no puede llegar por
+     *   redirect: con la sesión vencida, el 307 a /login rompe su
+     *   actualización)
      * - imágenes (svg, png, jpg, jpeg, gif, webp)
      * - api/cron (el cron de Vercel manda `Authorization: Bearer
      *   <CRON_SECRET>` sin cookies de sesión; el propio route handler
@@ -98,6 +101,6 @@ export const config = {
      * nuevo que no deba llevar sesión (p. ej. otro webhook público) hay
      * que agregarlo explícitamente aquí.
      */
-    '/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|api/cron/|api/calendario/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|api/cron/|api/calendario/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

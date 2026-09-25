@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 
 import { cerrarSesion } from '@/app/login/actions'
+import { Isotipo, Wordmark } from '@/components/marca'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -101,15 +102,8 @@ export function Sidebar({ items, usuarioNombre, negocioNombre }: SidebarProps) {
           href={items[0]?.href ?? '/'}
           className="flex items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/60"
         >
-          <span
-            aria-hidden
-            className="bg-marca flex size-7 items-center justify-center rounded-lg text-xs font-extrabold text-white"
-          >
-            T
-          </span>
-          <span className="text-sm font-bold tracking-[0.22em] text-white">
-            TOP&nbsp;DIGITAL
-          </span>
+          <Isotipo className="size-7" />
+          <Wordmark className="w-[86px]" />
         </Link>
       </div>
 

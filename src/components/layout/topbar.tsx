@@ -8,6 +8,7 @@ import { Bell, LogOut, Menu } from 'lucide-react'
 
 import { cerrarSesion } from '@/app/login/actions'
 import { ActivarPush } from '@/components/layout/activar-push'
+import { Isotipo, Wordmark } from '@/components/marca'
 import {
   elementoActivo,
   iniciales,
@@ -93,15 +94,8 @@ export function Topbar({
         href={items[0]?.href ?? '/'}
         className="flex shrink-0 items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
       >
-        <span
-          aria-hidden
-          className="bg-marca flex size-8 items-center justify-center rounded-[10px] text-sm font-extrabold text-white"
-        >
-          T
-        </span>
-        <span className="hidden text-sm font-bold tracking-[0.22em] sm:block">
-          TOP&nbsp;DIGITAL
-        </span>
+        <Isotipo className="size-8" />
+        <Wordmark className="hidden w-[92px] sm:block" />
       </Link>
 
       {/* Píldoras de navegación (desktop) */}

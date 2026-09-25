@@ -5,6 +5,7 @@ import { Eye, EyeOff } from "lucide-react";
 
 import { iniciarSesion } from "./actions";
 import { RegistroDialog } from "@/components/inicio/registro-dialog";
+import { Isotipo, Wordmark } from "@/components/marca";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -38,14 +39,9 @@ export default function PaginaLogin() {
       <div className="bg-marca animate-in fade-in zoom-in-95 slide-in-from-bottom-4 fill-mode-both relative w-full max-w-sm rounded-[calc(var(--radius)+2px)] p-[1.5px] duration-500">
         <Card className="w-full border-0">
           <CardHeader className="items-center text-center">
-            <span
-              aria-hidden
-              className="bg-marca mx-auto mb-2 flex size-12 items-center justify-center rounded-2xl text-lg font-extrabold text-white"
-            >
-              T
-            </span>
-            <h1 className="font-heading text-2xl leading-snug font-bold tracking-[0.18em]">
-              TOP DIGITAL
+            <Isotipo className="mx-auto mb-3 size-14" />
+            <h1 className="flex justify-center">
+              <Wordmark className="w-40" />
             </h1>
             <CardDescription>
               Ingresa tus datos para acceder al sistema

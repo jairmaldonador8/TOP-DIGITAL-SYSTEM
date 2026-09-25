@@ -40,7 +40,10 @@ export function emailBienvenida(datos: {
         </tr>
         <tr>
           <td style="padding:36px 36px 8px;">
-            <p style="margin:0;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${MAGENTA};">Top Digital</p>
+            <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+              <td style="vertical-align:middle;"><img src="${URL_APP}/marca/logo-correo.png" width="40" height="40" alt="" style="display:block;border:0;"></td>
+              <td style="vertical-align:middle;padding-left:12px;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${MAGENTA};">Top Digital</td>
+            </tr></table>
             <h1 style="margin:12px 0 0;font-size:24px;line-height:1.3;color:#111827;">¡Bienvenido al equipo, ${nombre}! 👋</h1>
             <p style="margin:16px 0 0;font-size:15px;line-height:1.6;color:#4b5563;">
               Ya formas parte de Top Digital como <strong>${puesto}</strong>.

@@ -7,6 +7,7 @@ import {
   Sparkles,
 } from "lucide-react";
 
+import { Isotipo, Wordmark } from "@/components/marca";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -40,15 +41,8 @@ export function Landing() {
       {/* ===== Barra superior ===== */}
       <header className="relative z-10 mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6">
         <div className="flex items-center gap-3">
-          <span
-            aria-hidden
-            className="bg-marca flex size-9 items-center justify-center rounded-xl text-base font-extrabold text-white"
-          >
-            T
-          </span>
-          <span className="font-heading text-sm font-bold tracking-[0.22em]">
-            TOP DIGITAL
-          </span>
+          <Isotipo className="size-9" />
+          <Wordmark className="w-[100px]" />
         </div>
         <Button
           render={<Link href="/login" />}
