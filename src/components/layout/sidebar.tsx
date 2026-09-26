@@ -12,6 +12,7 @@ import {
   Megaphone,
   MessageCircle,
   MessagesSquare,
+  Sun,
   Target,
   Users,
   UsersRound,
@@ -38,6 +39,7 @@ import { cn } from '@/lib/utils'
  */
 const ICONOS = {
   dashboard: LayoutDashboard,
+  midia: Sun,
   clientes: Users,
   campanias: Megaphone,
   tareas: ListChecks,
@@ -66,7 +68,7 @@ type SidebarProps = {
 
 /**
  * Elemento activo = aquel cuyo href es el prefijo más largo de la ruta
- * actual. Evita que «Dashboard» (/agencia) quede activo en /agencia/clientes.
+ * actual. Evita que «Mi día» (/agencia) quede activo en /agencia/clientes.
  */
 export function elementoActivo(
   items: ElementoNav[],

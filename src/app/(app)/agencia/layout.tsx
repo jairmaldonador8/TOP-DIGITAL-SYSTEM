@@ -26,14 +26,15 @@ export const metadata: Metadata = {
 }
 
 const ELEMENTOS_AGENCIA: ElementoNav[] = [
-  { icono: 'dashboard', label: 'Dashboard', href: '/agencia' },
-  { icono: 'clientes', label: 'Clientes', href: '/agencia/clientes' },
-  { icono: 'campanias', label: 'Campañas', href: '/agencia/campanias' },
-  { icono: 'tareas', label: 'Tareas', href: '/agencia/tareas' },
-  { icono: 'leads', label: 'Leads', href: '/agencia/leads' },
-  { icono: 'chats', label: 'Chats', href: '/agencia/chats' },
-  { icono: 'equipo', label: 'Equipo', href: '/agencia/equipo' },
+  { icono: 'midia', label: 'Mi día', href: '/agencia' },
   { icono: 'calendario', label: 'Calendario', href: '/agencia/calendario' },
+  { icono: 'equipo', label: 'Equipo', href: '/agencia/equipo' },
+  { icono: 'clientes', label: 'Clientes', href: '/agencia/clientes' },
+  { icono: 'chats', label: 'Chats', href: '/agencia/chats' },
+  { icono: 'tareas', label: 'Tareas', href: '/agencia/tareas' },
+  { icono: 'campanias', label: 'Campañas', href: '/agencia/campanias' },
+  { icono: 'leads', label: 'Leads', href: '/agencia/leads' },
+  { icono: 'dashboard', label: 'Resumen', href: '/agencia/resumen' },
   { icono: 'reportes', label: 'Reportes', href: '/agencia/reportes' },
 ]
 
