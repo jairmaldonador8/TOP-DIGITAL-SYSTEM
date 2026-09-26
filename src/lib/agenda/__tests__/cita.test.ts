@@ -24,12 +24,22 @@ describe('validarCita', () => {
     expect(r.ok && r.datos).toMatchObject({ hora: null, hora_fin: null, aviso_min: null })
   })
 
-  it('rechaza título vacío, fecha inválida, fin antes del inicio y aviso fuera de lista', () => {
-    const r = validarCita({ titulo: ' ', fecha: '26/09', hora: '10:00', hora_fin: '09:00', aviso_min: '7' })
+  it('rechaza título vacío, fecha inválida, fin antes del inicio y aviso no numérico', () => {
+    const r = validarCita({ titulo: ' ', fecha: '26/09', hora: '10:00', hora_fin: '09:00', aviso_min: 'abc' })
     expect(r.ok).toBe(false)
     if (!r.ok) {
       expect(Object.keys(r.errores).sort()).toEqual(['aviso_min', 'fecha', 'hora_fin', 'titulo'])
     }
+  })
+
+  it('acepta avisos fuera de la lista entre 0 y 7 días; rechaza los que se pasan', () => {
+    const base = { titulo: 'Junta', fecha: '2026-09-26', hora: '10:00' }
+    expect(validarCita({ ...base, aviso_min: '7' })).toMatchObject({ ok: true, datos: { aviso_min: 7 } })
+    expect(validarCita({ ...base, aviso_min: '10080' }).ok).toBe(true)
+    const r = validarCita({ ...base, aviso_min: '99999' })
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(Object.keys(r.errores)).toEqual(['aviso_min'])
+    expect(validarCita({ ...base, aviso_min: '-5' }).ok).toBe(false)
   })
 
   it('las opciones de aviso incluyen "sin aviso"', () => {

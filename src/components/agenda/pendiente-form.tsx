@@ -48,7 +48,7 @@ export function PendienteForm({
         <Input
           id="titulo"
           name="titulo"
-          className="h-11 text-base"
+          className="h-11 text-base md:text-base"
           placeholder="Llamar al cliente, mandar propuesta…"
           defaultValue={valores.titulo ?? ''}
           maxLength={200}
@@ -70,7 +70,7 @@ export function PendienteForm({
             id="fecha_limite"
             name="fecha_limite"
             type="date"
-            className="h-11 text-base"
+            className="h-11 text-base md:text-base"
             defaultValue={valores.fecha_limite ?? hoy}
             aria-invalid={errores.fecha_limite ? true : undefined}
             aria-describedby={describedBy('fecha_limite', errores.fecha_limite)}
@@ -81,7 +81,7 @@ export function PendienteForm({
             id="hora"
             name="hora"
             type="time"
-            className="h-11 text-base"
+            className="h-11 text-base md:text-base"
             defaultValue={valores.hora ?? ''}
             aria-invalid={errores.hora ? true : undefined}
             aria-describedby={describedBy('hora', errores.hora)}
@@ -103,7 +103,7 @@ export function PendienteForm({
             ...clientes.map((c) => ({ value: c.id, label: c.nombre_negocio })),
           ]}
         >
-          <SelectTrigger id="cliente_id" className="h-11 w-full text-base">
+          <SelectTrigger id="cliente_id" className="w-full data-[size=default]:h-11 text-base md:text-base">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

@@ -25,6 +25,9 @@ export const AVISOS_MIN = [
   { value: '1440', label: '1 día antes' },
 ] as const
 
+/** Aviso máximo aceptado: 7 días antes. */
+export const AVISO_MAX_MIN = 10080
+
 export type DatosCita = {
   titulo: string
   fecha: string
@@ -72,7 +75,12 @@ export function validarCita(v: Record<string, string>): Resultado<DatosCita> {
   if (errores.hora_fin) horaFin = null
 
   const avisoTexto = texto(v.aviso_min)
-  if (!AVISOS_MIN.some((a) => a.value === avisoTexto)) errores.aviso_min = 'Opción no válida'
+  // La UI ofrece la lista, pero una cita ya guardada (o venida de Google)
+  // puede traer otro valor: se acepta cualquier entero de 0 a 7 días.
+  const avisoValido =
+    AVISOS_MIN.some((a) => a.value === avisoTexto) ||
+    (/^\d+$/.test(avisoTexto) && Number(avisoTexto) <= AVISO_MAX_MIN)
+  if (!avisoValido) errores.aviso_min = 'Opción no válida'
   const avisoMin = hora && avisoTexto ? Number(avisoTexto) : null
 
   const clienteId = nulo(v.cliente_id)

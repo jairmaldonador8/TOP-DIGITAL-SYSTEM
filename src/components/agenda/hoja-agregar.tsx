@@ -17,6 +17,12 @@ import { cn } from '@/lib/utils'
 
 export type PestanaAgregar = 'cita' | 'pendiente' | 'encargo'
 
+const PESTANAS: { id: PestanaAgregar; label: string }[] = [
+  { id: 'cita', label: 'Cita' },
+  { id: 'pendiente', label: 'Pendiente' },
+  { id: 'encargo', label: 'Encargo' },
+]
+
 export type DatosHojaAgregar = {
   clientes: ClienteOpcionCita[]
   trabajadores: TrabajadorOpcion[]
@@ -44,11 +50,16 @@ export function HojaAgregar({
     if (abierta) { setEpoca((n) => n + 1); setPestana(inicial) }
   }
 
-  const PESTANAS: { id: PestanaAgregar; label: string }[] = [
-    { id: 'cita', label: 'Cita' },
-    { id: 'pendiente', label: 'Pendiente' },
-    { id: 'encargo', label: 'Encargo' },
-  ]
+  // Flechas izquierda/derecha recorren las pestañas (patrón ARIA tabs).
+  const alTeclear = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
+    e.preventDefault()
+    const i = PESTANAS.findIndex((p) => p.id === pestana)
+    const paso = e.key === 'ArrowRight' ? 1 : -1
+    const siguiente = PESTANAS[(i + paso + PESTANAS.length) % PESTANAS.length].id
+    setPestana(siguiente)
+    document.getElementById(`pestana-${siguiente}`)?.focus()
+  }
 
   return (
     <Sheet open={abierta} onOpenChange={alCambiar}>
@@ -60,16 +71,19 @@ export function HojaAgregar({
           <SheetTitle>Agregar</SheetTitle>
           <SheetDescription className="sr-only">Agenda una cita, anota un pendiente o asigna un encargo</SheetDescription>
         </SheetHeader>
-        <div role="tablist" className="mb-4 flex gap-2">
+        <div role="tablist" aria-label="Qué agregar" className="mb-4 flex gap-2" onKeyDown={alTeclear}>
           {PESTANAS.map((p) => (
             <button
               key={p.id}
+              id={`pestana-${p.id}`}
               role="tab"
               type="button"
               aria-selected={pestana === p.id}
+              aria-controls={`panel-${p.id}`}
+              tabIndex={pestana === p.id ? 0 : -1}
               onClick={() => setPestana(p.id)}
               className={cn(
-                'h-10 rounded-full px-4 text-sm font-semibold transition-colors',
+                'h-11 rounded-full px-4 text-sm font-semibold transition-colors',
                 pestana === p.id ? 'bg-marca text-white' : 'bg-muted text-muted-foreground'
               )}
             >
@@ -77,18 +91,20 @@ export function HojaAgregar({
             </button>
           ))}
         </div>
-        {pestana === 'cita' && <CitaForm key={`c${epoca}`} clientes={datos.clientes} alExito={cerrar} />}
-        {pestana === 'pendiente' && <PendienteForm key={`p${epoca}`} clientes={datos.clientes} hoy={datos.hoy} alExito={cerrar} />}
-        {pestana === 'encargo' && (
-          <FormularioEncargo
-            key={`e${epoca}`}
-            action={crearEncargo}
-            etiquetas={{ enviando: 'Asignando…', enviar: 'Asignar encargo' }}
-            trabajadores={datos.trabajadores}
-            clientes={datos.clientes}
-            alExito={cerrar}
-          />
-        )}
+        <div role="tabpanel" id={`panel-${pestana}`} aria-labelledby={`pestana-${pestana}`}>
+          {pestana === 'cita' && <CitaForm key={`c${epoca}`} clientes={datos.clientes} alExito={cerrar} />}
+          {pestana === 'pendiente' && <PendienteForm key={`p${epoca}`} clientes={datos.clientes} hoy={datos.hoy} alExito={cerrar} />}
+          {pestana === 'encargo' && (
+            <FormularioEncargo
+              key={`e${epoca}`}
+              action={crearEncargo}
+              etiquetas={{ enviando: 'Asignando…', enviar: 'Asignar encargo' }}
+              trabajadores={datos.trabajadores}
+              clientes={datos.clientes}
+              alExito={cerrar}
+            />
+          )}
+        </div>
       </SheetContent>
     </Sheet>
   )

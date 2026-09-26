@@ -45,6 +45,14 @@ export type CitaEditable = {
 
 const SIN_CLIENTE = ''
 
+type OpcionAviso = { value: string; label: string }
+
+function opcionesAviso(actual: number | null): OpcionAviso[] {
+  const lista: OpcionAviso[] = [...AVISOS_MIN]
+  if (actual == null || lista.some((a) => a.value === String(actual))) return lista
+  return [...lista, { value: String(actual), label: `${actual} min antes` }]
+}
+
 /** Formulario de cita: lo usa la hoja "+" tanto para crear como editar. */
 export function CitaForm({
   clientes,
@@ -63,7 +71,10 @@ export function CitaForm({
   const [eliminando, iniciarEliminar] = useTransition()
 
   useEffect(() => {
-    if (estado?.ok) alExito()
+    if (estado?.ok) {
+      toast.success('Cita guardada 📅')
+      alExito()
+    }
   }, [estado, alExito])
 
   const errores = estado && !estado.ok ? estado.errores : {}
@@ -73,8 +84,9 @@ export function CitaForm({
         titulo: cita.titulo,
         cliente_id: cita.clienteId ?? SIN_CLIENTE,
         fecha: cita.fecha,
-        hora: cita.hora ?? '',
-        hora_fin: cita.horaFin ?? '',
+        // Postgres regresa `time` como HH:MM:SS; el input solo acepta HH:MM.
+        hora: cita.hora?.slice(0, 5) ?? '',
+        hora_fin: cita.horaFin?.slice(0, 5) ?? '',
         lugar: cita.lugar ?? '',
         tipo: cita.tipo,
         aviso_min: cita.avisoMin != null ? String(cita.avisoMin) : '',
@@ -82,6 +94,14 @@ export function CitaForm({
       }
     : {}
   const valores = { ...inicial, ...capturados }
+
+  // Sin hora = todo el día: se esconden "Termina" y "Avisarme".
+  const [hora, setHora] = useState(valores.hora ?? '')
+  const todoElDia = hora === ''
+
+  // Un aviso guardado fuera de la lista se agrega para que el Select no
+  // salga en blanco.
+  const avisos = opcionesAviso(cita?.avisoMin ?? null)
 
   const eliminar = () => {
     if (!cita) return
@@ -105,7 +125,7 @@ export function CitaForm({
         <Input
           id="titulo"
           name="titulo"
-          className="h-11 text-base"
+          className="h-11 text-base md:text-base"
           placeholder="Junta con el cliente"
           defaultValue={valores.titulo ?? ''}
           maxLength={200}
@@ -135,7 +155,7 @@ export function CitaForm({
             ...clientes.map((c) => ({ value: c.id, label: c.nombre_negocio })),
           ]}
         >
-          <SelectTrigger id="cliente_id" className="h-11 w-full text-base">
+          <SelectTrigger id="cliente_id" className="w-full data-[size=default]:h-11 text-base md:text-base">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -154,7 +174,7 @@ export function CitaForm({
           id="fecha"
           name="fecha"
           type="date"
-          className="h-11 text-base"
+          className="h-11 text-base md:text-base"
           defaultValue={valores.fecha ?? ''}
           aria-invalid={errores.fecha ? true : undefined}
           aria-describedby={describedBy('fecha', errores.fecha)}
@@ -173,35 +193,42 @@ export function CitaForm({
             id="hora"
             name="hora"
             type="time"
-            className="h-11 text-base"
-            defaultValue={valores.hora ?? ''}
+            className="h-11 text-base md:text-base"
+            value={hora}
+            onChange={(e) => setHora(e.target.value)}
             aria-invalid={errores.hora ? true : undefined}
             aria-describedby={describedBy('hora', errores.hora)}
           />
         </Campo>
-        <Campo
-          id="hora_fin"
-          etiqueta="Termina"
-          descripcion="Opcional"
-          error={errores.hora_fin}
-        >
-          <Input
+        {todoElDia ? (
+          <p className="self-center rounded-2xl bg-muted px-4 py-3 text-sm text-muted-foreground">
+            Todo el día · sale en tu resumen de la mañana
+          </p>
+        ) : (
+          <Campo
             id="hora_fin"
-            name="hora_fin"
-            type="time"
-            className="h-11 text-base"
-            defaultValue={valores.hora_fin ?? ''}
-            aria-invalid={errores.hora_fin ? true : undefined}
-            aria-describedby={describedBy('hora_fin', errores.hora_fin)}
-          />
-        </Campo>
+            etiqueta="Termina"
+            descripcion="Opcional"
+            error={errores.hora_fin}
+          >
+            <Input
+              id="hora_fin"
+              name="hora_fin"
+              type="time"
+              className="h-11 text-base md:text-base"
+              defaultValue={valores.hora_fin ?? ''}
+              aria-invalid={errores.hora_fin ? true : undefined}
+              aria-describedby={describedBy('hora_fin', errores.hora_fin)}
+            />
+          </Campo>
+        )}
       </div>
 
       <Campo id="lugar" etiqueta="Lugar" descripcion="Opcional" error={errores.lugar}>
         <Input
           id="lugar"
           name="lugar"
-          className="h-11 text-base"
+          className="h-11 text-base md:text-base"
           placeholder="Oficina del cliente, Zoom, dirección…"
           defaultValue={valores.lugar ?? ''}
           aria-invalid={errores.lugar ? true : undefined}
@@ -212,7 +239,7 @@ export function CitaForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <Campo id="tipo" etiqueta="Tipo" error={errores.tipo}>
           <Select name="tipo" defaultValue={valores.tipo ?? 'junta'} items={TIPOS_CITA}>
-            <SelectTrigger id="tipo" className="h-11 w-full text-base">
+            <SelectTrigger id="tipo" className="w-full data-[size=default]:h-11 text-base md:text-base">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -224,24 +251,26 @@ export function CitaForm({
             </SelectContent>
           </Select>
         </Campo>
-        <Campo id="aviso_min" etiqueta="Avisarme" error={errores.aviso_min}>
-          <Select
-            name="aviso_min"
-            defaultValue={valores.aviso_min ?? '30'}
-            items={AVISOS_MIN}
-          >
-            <SelectTrigger id="aviso_min" className="h-11 w-full text-base">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {AVISOS_MIN.map((a) => (
-                <SelectItem key={a.value} value={a.value}>
-                  {a.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Campo>
+        {todoElDia ? null : (
+          <Campo id="aviso_min" etiqueta="Avisarme" error={errores.aviso_min}>
+            <Select
+              name="aviso_min"
+              defaultValue={valores.aviso_min ?? '30'}
+              items={avisos}
+            >
+              <SelectTrigger id="aviso_min" className="w-full data-[size=default]:h-11 text-base md:text-base">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {avisos.map((a) => (
+                  <SelectItem key={a.value} value={a.value}>
+                    {a.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Campo>
+        )}
       </div>
 
       <Campo
@@ -254,6 +283,7 @@ export function CitaForm({
           id="descripcion"
           name="descripcion"
           rows={2}
+          className="text-base md:text-base"
           placeholder="Contexto, acuerdos, links…"
           defaultValue={valores.descripcion ?? ''}
         />
