@@ -38,6 +38,8 @@ export type CitaEditable = {
   lugar: string | null
   avisoMin: number | null
   clienteId: string | null
+  /** Nombre del cliente: si ya no está activo se agrega como opción. */
+  cliente?: string | null
   descripcion: string | null
   tipo: string
   origen: 'sistema' | 'google'
@@ -70,12 +72,15 @@ export function CitaForm({
   const [confirmando, setConfirmando] = useState(false)
   const [eliminando, iniciarEliminar] = useTransition()
 
+  // Booleano (no el objeto `cita`): un refresco trae otra referencia y
+  // no debe repetir el aviso.
+  const editando = cita != null
   useEffect(() => {
     if (estado?.ok) {
-      toast.success('Cita guardada 📅')
+      toast.success(editando ? 'Cambios guardados' : 'Cita guardada 📅')
       alExito()
     }
-  }, [estado, alExito])
+  }, [estado, alExito, editando])
 
   const errores = estado && !estado.ok ? estado.errores : {}
   const capturados = estado && !estado.ok ? estado.valores : {}
@@ -102,6 +107,16 @@ export function CitaForm({
   // Un aviso guardado fuera de la lista se agrega para que el Select no
   // salga en blanco.
   const avisos = opcionesAviso(cita?.avisoMin ?? null)
+
+  // Igual con el cliente: si ya no está en la lista (inactivo), se agrega
+  // para que el Select lo muestre en vez de quedar en blanco.
+  const opcionesCliente = [
+    { value: SIN_CLIENTE, label: 'Sin cliente' },
+    ...clientes.map((c) => ({ value: c.id, label: c.nombre_negocio })),
+  ]
+  if (cita?.clienteId && !clientes.some((c) => c.id === cita.clienteId)) {
+    opcionesCliente.push({ value: cita.clienteId, label: cita.cliente ?? 'Cliente inactivo' })
+  }
 
   const eliminar = () => {
     if (!cita) return
@@ -150,19 +165,15 @@ export function CitaForm({
         <Select
           name="cliente_id"
           defaultValue={valores.cliente_id ?? SIN_CLIENTE}
-          items={[
-            { value: SIN_CLIENTE, label: 'Sin cliente' },
-            ...clientes.map((c) => ({ value: c.id, label: c.nombre_negocio })),
-          ]}
+          items={opcionesCliente}
         >
           <SelectTrigger id="cliente_id" className="w-full data-[size=default]:h-11 text-base md:text-base">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={SIN_CLIENTE}>Sin cliente</SelectItem>
-            {clientes.map((cliente) => (
-              <SelectItem key={cliente.id} value={cliente.id}>
-                {cliente.nombre_negocio}
+            {opcionesCliente.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
               </SelectItem>
             ))}
           </SelectContent>

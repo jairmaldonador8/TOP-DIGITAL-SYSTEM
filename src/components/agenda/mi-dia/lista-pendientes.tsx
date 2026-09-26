@@ -8,9 +8,17 @@ import { cambiarEstadoTarea } from '@/app/(app)/agencia/tareas/actions'
 import type { PendienteDia } from '@/lib/agenda/tipos'
 import { cn } from '@/lib/utils'
 
-/** "Deshacer" del toast: regresa el pendiente a su estado y lo destacha. */
-async function restaurarDesdeToast(id: string, alRestaurar: () => void) {
-  const resultado = await cambiarEstadoTarea(id, 'pendiente')
+/**
+ * "Deshacer" del toast: regresa el pendiente a su estado previo
+ * (pendiente o en progreso) y lo destacha. La revalidación de la acción
+ * refresca Mi día, y es ese refresco el que trae la fila de vuelta.
+ */
+async function restaurarDesdeToast(
+  id: string,
+  estadoPrevio: PendienteDia['estado'],
+  alRestaurar: () => void
+) {
+  const resultado = await cambiarEstadoTarea(id, estadoPrevio)
   if (resultado.ok) {
     alRestaurar()
     toast.success('Pendiente restaurado')
@@ -52,7 +60,7 @@ function FilaPendiente({ pendiente }: { pendiente: PendienteDia }) {
       toast.success('Listo ✅', {
         action: {
           label: 'Deshacer',
-          onClick: () => void restaurarDesdeToast(pendiente.id, () => setHecho(false)),
+          onClick: () => void restaurarDesdeToast(pendiente.id, pendiente.estado, () => setHecho(false)),
         },
       })
     } else {

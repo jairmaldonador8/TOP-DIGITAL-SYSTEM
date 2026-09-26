@@ -32,11 +32,11 @@ describe('construirMiDia', () => {
       hoy: HOY,
       citas: [],
       pendientes: [
-        { id: 'sin', titulo: 'Sin fecha', fecha: null, hora: null, cliente: null },
-        { id: 'fut', titulo: 'Mañana', fecha: '2026-09-27', hora: null, cliente: null },
-        { id: 'hoy2', titulo: 'Hoy tarde', fecha: HOY, hora: '18:00', cliente: null },
-        { id: 'hoy1', titulo: 'Hoy', fecha: HOY, hora: null, cliente: 'OfficeTure' },
-        { id: 'atr', titulo: 'Atrasado', fecha: '2026-09-20', hora: null, cliente: null },
+        { id: 'sin', titulo: 'Sin fecha', fecha: null, hora: null, cliente: null, estado: 'pendiente' },
+        { id: 'fut', titulo: 'Mañana', fecha: '2026-09-27', hora: null, cliente: null, estado: 'pendiente' },
+        { id: 'hoy2', titulo: 'Hoy tarde', fecha: HOY, hora: '18:00', cliente: null, estado: 'en_progreso' },
+        { id: 'hoy1', titulo: 'Hoy', fecha: HOY, hora: null, cliente: 'OfficeTure', estado: 'pendiente' },
+        { id: 'atr', titulo: 'Atrasado', fecha: '2026-09-20', hora: null, cliente: null, estado: 'pendiente' },
       ],
       entregas: [],
     })

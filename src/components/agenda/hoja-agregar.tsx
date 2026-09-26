@@ -79,7 +79,8 @@ export function HojaAgregar({
               role="tab"
               type="button"
               aria-selected={pestana === p.id}
-              aria-controls={`panel-${p.id}`}
+              // Solo la pestaña activa tiene panel montado.
+              aria-controls={pestana === p.id ? `panel-${p.id}` : undefined}
               tabIndex={pestana === p.id ? 0 : -1}
               onClick={() => setPestana(p.id)}
               className={cn(

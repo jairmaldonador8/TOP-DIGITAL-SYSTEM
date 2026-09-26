@@ -69,8 +69,14 @@ export function LineaCitas({ citas, datos }: { citas: CitaDia[]; datos: DatosHoj
           const detalle = [c.cliente, c.lugar, duracion(c.hora, c.horaFin)].filter(Boolean).join(' · ')
           return (
             <li key={c.id} className="flex min-h-14 items-stretch gap-3">
-              <span className="w-12 shrink-0 pt-3 text-xs text-muted-foreground tabular-nums">
-                {c.hora ?? 'Todo el día'}
+              <span className="w-14 shrink-0 pt-3 text-xs leading-tight text-muted-foreground tabular-nums">
+                {c.hora ?? (
+                  <>
+                    Todo
+                    <br />
+                    el día
+                  </>
+                )}
               </span>
               <button
                 type="button"

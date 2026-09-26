@@ -4,7 +4,7 @@ import 'server-only'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 import { construirMiDia } from './mi-dia'
-import type { CitaDia, MiDia } from './tipos'
+import type { CitaDia, MiDia, PendienteDia } from './tipos'
 
 type Rel = { nombre_negocio: string } | { nombre_negocio: string }[] | null
 const negocio = (r: Rel) => (Array.isArray(r) ? r[0]?.nombre_negocio : r?.nombre_negocio) ?? null
@@ -20,7 +20,7 @@ export async function cargarMiDia(supabase: SupabaseClient, hoy: string): Promis
       .is('borrado_en', null),
     supabase
       .from('tareas')
-      .select('id, titulo, fecha_limite, hora, clientes ( nombre_negocio )')
+      .select('id, titulo, estado, fecha_limite, hora, clientes ( nombre_negocio )')
       .neq('estado', 'completada')
       .or(`fecha_limite.is.null,fecha_limite.lte.${hoy}`),
     supabase
@@ -50,8 +50,8 @@ export async function cargarMiDia(supabase: SupabaseClient, hoy: string): Promis
       clienteId: (c.cliente_id as string | null) ?? null,
       tipo: c.tipo as string,
     })),
-    pendientes: ((tareas.data ?? []) as unknown as { id: string; titulo: string; fecha_limite: string | null; hora: string | null; clientes: Rel }[]).map((t) => ({
-      id: t.id, titulo: t.titulo, fecha: t.fecha_limite, hora: hhmm(t.hora), cliente: negocio(t.clientes),
+    pendientes: ((tareas.data ?? []) as unknown as { id: string; titulo: string; estado: PendienteDia['estado']; fecha_limite: string | null; hora: string | null; clientes: Rel }[]).map((t) => ({
+      id: t.id, titulo: t.titulo, estado: t.estado, fecha: t.fecha_limite, hora: hhmm(t.hora), cliente: negocio(t.clientes),
     })),
     entregas: ((encargos.data ?? []) as { id: string; titulo: string; fecha_limite: string; asignado_a: string }[]).map((e) => ({
       id: e.id, titulo: e.titulo, fecha: e.fecha_limite, integrante: nombres.get(e.asignado_a) ?? 'Integrante',

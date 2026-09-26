@@ -21,6 +21,8 @@ export type PendienteDia = {
   fecha: string | null
   hora: string | null
   cliente: string | null
+  // Estado antes de completarla: el "Deshacer" la regresa a este.
+  estado: 'pendiente' | 'en_progreso'
   atrasado: boolean
 }
 
