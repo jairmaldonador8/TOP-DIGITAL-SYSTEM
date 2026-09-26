@@ -11,15 +11,15 @@ const PASOS: PasoTour[] = [
   },
   {
     selector: '[data-tour="metricas"]',
-    titulo: 'La agencia de un vistazo',
+    titulo: 'Tu día de un vistazo',
     texto:
-      'Tus números del mes: leads, ventas cerradas, campañas activas y tareas. Cada tarjeta es un atajo — dale clic y te lleva a su sección.',
+      'Citas, pendientes y entregas del equipo de hoy. Toca el + para agendar algo o anotar un pendiente en segundos.',
   },
   {
     selector: '[data-tour="nav"]',
-    titulo: 'Tus 7 secciones',
+    titulo: 'Todo a la mano',
     texto:
-      'En Clientes das de alta negocios y sus accesos, Leads es el CRM global, Campañas lleva gasto y resultados, en Chats respondes a tus clientes y Reportes trae el embudo completo.',
+      'Calendario, Equipo, Clientes, Chats y el Resumen con tus números. En el celular viven en la barra de abajo.',
   },
   {
     selector: '[data-tour="campanita"]',
