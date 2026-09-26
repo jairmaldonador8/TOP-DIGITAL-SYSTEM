@@ -150,7 +150,7 @@ export function EditarEncargoDialog({
   )
 }
 
-function FormularioEncargo({
+export function FormularioEncargo({
   action,
   etiquetas,
   inicial = {},
