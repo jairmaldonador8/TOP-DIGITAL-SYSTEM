@@ -29,6 +29,7 @@ describe('construirElementos', () => {
           id: 't1',
           titulo: 'Reporte mensual',
           fecha_limite: '2026-07-20',
+          hora: null,
           clientes: null,
         },
       ],
@@ -39,7 +40,12 @@ describe('construirElementos', () => {
           descripcion: 'Estudio centro',
           fecha: '2026-07-15',
           hora: '14:30:00',
+          hora_fin: null,
+          lugar: 'Estudio centro',
+          aviso_min: null,
+          origen: 'sistema',
           tipo: 'sesion',
+          cliente_id: null,
           clientes: { nombre_negocio: 'Linda Vargas' },
         },
       ],
@@ -69,7 +75,12 @@ describe('construirElementos', () => {
           descripcion: null,
           fecha: '2026-07-15',
           hora: '16:00:00',
+          hora_fin: null,
+          lugar: null,
+          aviso_min: null,
+          origen: 'sistema',
           tipo: 'junta',
+          cliente_id: null,
           clientes: null,
         },
         {
@@ -78,7 +89,12 @@ describe('construirElementos', () => {
           descripcion: null,
           fecha: '2026-07-15',
           hora: null,
+          hora_fin: null,
+          lugar: null,
+          aviso_min: null,
+          origen: 'sistema',
           tipo: 'junta',
+          cliente_id: null,
           clientes: null,
         },
         {
@@ -87,7 +103,12 @@ describe('construirElementos', () => {
           descripcion: null,
           fecha: '2026-07-15',
           hora: '09:00:00',
+          hora_fin: null,
+          lugar: null,
+          aviso_min: null,
+          origen: 'sistema',
           tipo: 'junta',
+          cliente_id: null,
           clientes: null,
         },
       ],
@@ -107,5 +128,22 @@ describe('construirElementos', () => {
       ],
     })
     expect(elementos[0].detalle).toBeNull()
+  })
+
+  it('las citas llevan horaFin, lugar, origen y avisoMin; el detalle incluye el lugar', () => {
+    const [cita] = construirElementos({
+      ...base,
+      eventos: [
+        {
+          id: 'v9', titulo: 'Junta', descripcion: null, fecha: '2026-09-26', hora: '10:00:00',
+          hora_fin: '11:00:00', lugar: 'Oficina', aviso_min: 30, origen: 'google', tipo: 'junta',
+          cliente_id: null, clientes: { nombre_negocio: 'OfficeTure' },
+        },
+      ],
+    })
+    expect(cita).toMatchObject({
+      hora: '10:00', horaFin: '11:00', lugar: 'Oficina', origen: 'google', avisoMin: 30,
+      detalle: 'OfficeTure · Oficina',
+    })
   })
 })

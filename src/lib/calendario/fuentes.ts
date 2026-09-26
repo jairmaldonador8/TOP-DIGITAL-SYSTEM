@@ -29,6 +29,7 @@ type FilaTarea = {
   id: string
   titulo: string
   fecha_limite: string
+  hora: string | null
   clientes: { nombre_negocio: string } | null
 }
 type FilaEvento = {
@@ -37,7 +38,12 @@ type FilaEvento = {
   descripcion: string | null
   fecha: string
   hora: string | null
+  hora_fin: string | null
+  lugar: string | null
+  aviso_min: number | null
+  origen: 'sistema' | 'google'
   tipo: string
+  cliente_id: string | null
   clientes: { nombre_negocio: string } | null
 }
 
@@ -64,6 +70,12 @@ export function construirElementos(fuentes: FuentesCrudas): ElementoCalendario[]
       tipo: 'campania',
       subtipo: null,
       href: '/agencia/campanias',
+      horaFin: null,
+      lugar: null,
+      origen: null,
+      avisoMin: null,
+      descripcion: null,
+      clienteId: null,
     })
   }
 
@@ -79,6 +91,12 @@ export function construirElementos(fuentes: FuentesCrudas): ElementoCalendario[]
       tipo: 'encargo',
       subtipo: null,
       href: '/agencia/equipo',
+      horaFin: null,
+      lugar: null,
+      origen: null,
+      avisoMin: null,
+      descripcion: null,
+      clienteId: null,
     })
   }
 
@@ -87,12 +105,18 @@ export function construirElementos(fuentes: FuentesCrudas): ElementoCalendario[]
       id: tarea.id,
       uid: `tarea:${tarea.id}`,
       fecha: tarea.fecha_limite,
-      hora: null,
+      hora: tarea.hora ? tarea.hora.slice(0, 5) : null,
       titulo: tarea.titulo,
       detalle: tarea.clientes?.nombre_negocio ?? null,
       tipo: 'tarea',
       subtipo: null,
       href: '/agencia/tareas',
+      horaFin: null,
+      lugar: null,
+      origen: null,
+      avisoMin: null,
+      descripcion: null,
+      clienteId: null,
     })
   }
 
@@ -105,12 +129,18 @@ export function construirElementos(fuentes: FuentesCrudas): ElementoCalendario[]
       hora: evento.hora ? evento.hora.slice(0, 5) : null,
       titulo: evento.titulo,
       detalle:
-        [evento.clientes?.nombre_negocio, evento.descripcion]
+        [evento.clientes?.nombre_negocio, evento.lugar]
           .filter(Boolean)
           .join(' · ') || null,
       tipo: 'evento',
       subtipo: evento.tipo,
       href: '/agencia/calendario',
+      horaFin: evento.hora_fin ? evento.hora_fin.slice(0, 5) : null,
+      lugar: evento.lugar,
+      origen: evento.origen,
+      avisoMin: evento.aviso_min,
+      descripcion: evento.descripcion,
+      clienteId: evento.cliente_id,
     })
   }
 
@@ -147,15 +177,16 @@ export async function cargarElementos(
         .lte('fecha_limite', hasta),
       supabase
         .from('tareas')
-        .select('id, titulo, fecha_limite, clientes ( nombre_negocio )')
+        .select('id, titulo, fecha_limite, hora, clientes ( nombre_negocio )')
         .neq('estado', 'completada')
         .gte('fecha_limite', desde)
         .lte('fecha_limite', hasta),
       supabase
         .from('eventos')
         .select(
-          'id, titulo, descripcion, fecha, hora, tipo, clientes ( nombre_negocio )'
+          'id, titulo, descripcion, fecha, hora, hora_fin, lugar, aviso_min, origen, tipo, cliente_id, clientes ( nombre_negocio )'
         )
+        .is('borrado_en', null)
         .gte('fecha', desde)
         .lte('fecha', hasta),
       supabase.from('usuarios').select('user_id, nombre').eq('rol', 'equipo'),

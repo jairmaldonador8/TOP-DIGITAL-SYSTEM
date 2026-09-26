@@ -18,4 +18,12 @@ export type ElementoCalendario = {
   subtipo: string | null
   /** Liga interna para la agenda. */
   href: string
+  /** Solo citas (tipo 'evento'): HH:MM de fin. */
+  horaFin: string | null
+  lugar: string | null
+  origen: 'sistema' | 'google' | null
+  avisoMin: number | null
+  /** Solo citas: datos crudos para abrir el formulario de edición. */
+  descripcion: string | null
+  clienteId: string | null
 }

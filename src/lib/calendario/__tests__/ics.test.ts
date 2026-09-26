@@ -13,6 +13,12 @@ const elemento = (extra: Partial<ElementoCalendario>): ElementoCalendario => ({
   tipo: 'evento',
   subtipo: null,
   href: '/agencia/calendario',
+  horaFin: null,
+  lugar: null,
+  origen: null,
+  avisoMin: null,
+  descripcion: null,
+  clienteId: null,
   ...extra,
 })
 
