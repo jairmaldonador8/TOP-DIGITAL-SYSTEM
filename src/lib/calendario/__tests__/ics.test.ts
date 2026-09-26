@@ -87,4 +87,44 @@ describe('generarICS', () => {
     ])
     expect(ics).toContain('DESCRIPTION:Cliente: Tacos\\, El Patrón\\; urgente')
   })
+
+  it('con horaFin usa DTEND en vez de la duración fija de 1h', () => {
+    const ics = generarICS([elemento({ hora: '14:30', horaFin: '15:15' })])
+    expect(ics).toContain('DTSTART:20260724T143000')
+    expect(ics).toContain('DTEND:20260724T151500')
+    expect(ics).not.toContain('DURATION:PT1H')
+  })
+
+  it('sin horaFin conserva la duración fija de 1h', () => {
+    const ics = generarICS([elemento({ hora: '14:30' })])
+    expect(ics).toContain('DURATION:PT1H')
+    expect(ics).not.toContain('DTEND:')
+  })
+
+  it('el lugar va en LOCATION escapado', () => {
+    const ics = generarICS([elemento({ lugar: 'Sala 2, Torre A' })])
+    expect(ics).toContain('LOCATION:Sala 2\\, Torre A')
+  })
+
+  it('sin lugar no hay LOCATION', () => {
+    const ics = generarICS([elemento({})])
+    expect(ics).not.toContain('LOCATION:')
+  })
+
+  it('descripcion se agrega a DESCRIPTION tras el detalle, separados por salto de línea', () => {
+    const ics = generarICS([
+      elemento({ detalle: 'OfficeTure', descripcion: 'Traer laptop' }),
+    ])
+    expect(ics).toContain('DESCRIPTION:OfficeTure\\nTraer laptop')
+  })
+
+  it('descripcion sin detalle va sola en DESCRIPTION', () => {
+    const ics = generarICS([elemento({ descripcion: 'Traer laptop' })])
+    expect(ics).toContain('DESCRIPTION:Traer laptop')
+  })
+
+  it('sin detalle ni descripcion no hay DESCRIPTION', () => {
+    const ics = generarICS([elemento({})])
+    expect(ics).not.toContain('DESCRIPTION:')
+  })
 })

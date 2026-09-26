@@ -39,9 +39,10 @@ export async function editarCita(_prev: ResultadoAccion, formData: FormData): Pr
   if (!r.ok) return { ok: false, errores: r.errores, valores }
 
   const supabase = await createClient()
+  // Cambio local que Google todavía no recibe; la fase 3 lo consume.
   const { data, error } = await supabase
     .from('eventos')
-    .update(r.datos)
+    .update({ ...r.datos, google_pendiente: true })
     .eq('id', id)
     .is('borrado_en', null)
     .select('id')
@@ -65,8 +66,19 @@ export async function eliminarCita(id: string): Promise<ResultadoSimple> {
   if (!esUuid(id)) return { ok: false, mensaje: 'Solicitud no válida' }
 
   const supabase = await createClient()
-  const { data: fila } = await supabase.from('eventos').select('google_event_id').eq('id', id).maybeSingle()
-  const { error } = fila?.google_event_id
+  const { data: fila, error: errorConsulta } = await supabase
+    .from('eventos')
+    .select('google_event_id')
+    .eq('id', id)
+    .is('borrado_en', null)
+    .maybeSingle()
+  if (errorConsulta) {
+    console.error('Error al eliminar cita:', errorConsulta)
+    return { ok: false, mensaje: 'No se pudo eliminar, intenta de nuevo' }
+  }
+  if (!fila) return { ok: false, mensaje: 'La cita ya no existe' }
+
+  const { error } = fila.google_event_id
     ? await supabase.from('eventos').update({ borrado_en: new Date().toISOString(), google_pendiente: true }).eq('id', id)
     : await supabase.from('eventos').delete().eq('id', id)
   if (error) {

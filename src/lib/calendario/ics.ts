@@ -54,8 +54,13 @@ function lineaFecha(elemento: ElementoCalendario): string[] {
   const compacta = elemento.fecha.replaceAll('-', '')
   if (!elemento.hora) return [`DTSTART;VALUE=DATE:${compacta}`]
   // Hora local flotante (sin Z/TZID): Google la pinta en la zona del
-  // calendario del dueño (México). Duración fija de 1 hora.
+  // calendario del dueño (México).
   const hhmm = elemento.hora.replace(':', '').slice(0, 4)
+  if (elemento.horaFin) {
+    const hhmmFin = elemento.horaFin.replace(':', '').slice(0, 4)
+    return [`DTSTART:${compacta}T${hhmm}00`, `DTEND:${compacta}T${hhmmFin}00`]
+  }
+  // Sin fin conocido (campañas, tareas, etc.): duración fija de 1 hora.
   return [`DTSTART:${compacta}T${hhmm}00`, 'DURATION:PT1H']
 }
 
@@ -78,8 +83,16 @@ export function generarICS(elementos: ElementoCalendario[]): string {
       ...lineaFecha(elemento),
       `SUMMARY:${escaparICS(`${PREFIJO[elemento.tipo]} ${elemento.titulo}`)}`
     )
-    if (elemento.detalle) {
-      lineas.push(`DESCRIPTION:${escaparICS(elemento.detalle)}`)
+    // DESCRIPTION combina el detalle (contexto) con la descripción de la
+    // cita, cuando existen; una sola de las dos también basta.
+    const descripcion = [elemento.detalle, elemento.descripcion]
+      .filter(Boolean)
+      .join('\n')
+    if (descripcion) {
+      lineas.push(`DESCRIPTION:${escaparICS(descripcion)}`)
+    }
+    if (elemento.lugar) {
+      lineas.push(`LOCATION:${escaparICS(elemento.lugar)}`)
     }
     lineas.push('END:VEVENT')
   }

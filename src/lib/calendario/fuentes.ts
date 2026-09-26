@@ -55,6 +55,16 @@ export type FuentesCrudas = {
   nombresIntegrantes: Map<string, string>
 }
 
+/** Campos exclusivos de citas ('evento'): las otras 3 fuentes no los tienen. */
+const SIN_CITA = {
+  horaFin: null,
+  lugar: null,
+  origen: null,
+  avisoMin: null,
+  descripcion: null,
+  clienteId: null,
+} as const
+
 /** Mapeo puro fuentes → elementos, ordenados por fecha (y hora). */
 export function construirElementos(fuentes: FuentesCrudas): ElementoCalendario[] {
   const elementos: ElementoCalendario[] = []
@@ -70,12 +80,7 @@ export function construirElementos(fuentes: FuentesCrudas): ElementoCalendario[]
       tipo: 'campania',
       subtipo: null,
       href: '/agencia/campanias',
-      horaFin: null,
-      lugar: null,
-      origen: null,
-      avisoMin: null,
-      descripcion: null,
-      clienteId: null,
+      ...SIN_CITA,
     })
   }
 
@@ -91,12 +96,7 @@ export function construirElementos(fuentes: FuentesCrudas): ElementoCalendario[]
       tipo: 'encargo',
       subtipo: null,
       href: '/agencia/equipo',
-      horaFin: null,
-      lugar: null,
-      origen: null,
-      avisoMin: null,
-      descripcion: null,
-      clienteId: null,
+      ...SIN_CITA,
     })
   }
 
@@ -111,12 +111,7 @@ export function construirElementos(fuentes: FuentesCrudas): ElementoCalendario[]
       tipo: 'tarea',
       subtipo: null,
       href: '/agencia/tareas',
-      horaFin: null,
-      lugar: null,
-      origen: null,
-      avisoMin: null,
-      descripcion: null,
-      clienteId: null,
+      ...SIN_CITA,
     })
   }
 
