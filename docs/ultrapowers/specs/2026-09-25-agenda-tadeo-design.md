@@ -141,8 +141,9 @@ Google aparece en Mi día.
   GET de Vercel; `Authorization: Bearer CRON_SECRET`; excluido del proxy
   como `api/cron/`), disparado **cada 5 min por `pg_cron` + `pg_net`**
   desde Supabase contra `https://www.topdigital.company/api/cron/tick`
-  con `timeout_milliseconds` de 55 s (el secreto vive en Supabase Vault;
-  migración que crea el job). Cada corrida, en orden e independientes
+  con `timeout_milliseconds` de 60 s (el secreto vive en Supabase Vault;
+  migración que crea el job). El handler valida y **responde 202 al
+  instante**; el trabajo corre en `after()` (ver research brief). Cada corrida, en orden e independientes
   (un fallo no detiene a los demás, se registra):
   1. Sincroniza Google (y reintenta `google_pendiente`, renueva canal).
   2. **Recordatorios**: citas con `aviso_min` cuyo inicio − aviso cae en
