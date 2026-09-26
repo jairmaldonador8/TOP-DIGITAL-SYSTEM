@@ -30,14 +30,6 @@ const DIAS_AGENDA = 7
 
 /** ElementoCalendario (tipo 'evento') → datos del formulario de edición. */
 function aCitaEditable(e: ElementoCalendario): CitaEditable {
-  // `detalle` es "cliente · lugar": sin el lugar queda el nombre del cliente,
-  // que CitaForm usa si el cliente ya no está activo.
-  let cliente: string | null = null
-  if (e.clienteId && e.detalle) {
-    const sufijo = e.lugar ? ` · ${e.lugar}` : ''
-    cliente = sufijo && e.detalle.endsWith(sufijo) ? e.detalle.slice(0, -sufijo.length) : e.detalle
-    if (e.lugar && cliente === e.lugar) cliente = null
-  }
   return {
     id: e.id,
     titulo: e.titulo,
@@ -47,7 +39,8 @@ function aCitaEditable(e: ElementoCalendario): CitaEditable {
     lugar: e.lugar,
     avisoMin: e.avisoMin,
     clienteId: e.clienteId,
-    cliente,
+    // Nombre del cliente: CitaForm lo usa si el cliente ya no está activo.
+    cliente: e.clienteId ? e.cliente : null,
     descripcion: e.descripcion,
     tipo: e.subtipo ?? 'otro',
     origen: e.origen ?? 'sistema',

@@ -66,10 +66,19 @@ export default async function LayoutAgencia({
 
   // Mensajes sin responder, agrupados por cliente (índice parcial de 0006).
   const supabase = await createClient()
-  const { data: filas, error } = await supabase
-    .from('mensajes')
-    .select('cliente_id, autor_id, clientes ( nombre_negocio )')
-    .eq('leido', false)
+  const hoy = hoyEnMexico()
+  const [{ data: filas, error }, { count: vencidas }, hoja] = await Promise.all([
+    supabase
+      .from('mensajes')
+      .select('cliente_id, autor_id, clientes ( nombre_negocio )')
+      .eq('leido', false),
+    supabase
+      .from('tareas')
+      .select('id', { count: 'exact', head: true })
+      .neq('estado', 'completada')
+      .lt('fecha_limite', hoy),
+    cargarDatosHojaAgregar(supabase, hoy),
+  ])
   if (error) console.error('Error al contar mensajes sin leer:', error)
 
   const porCliente = new Map<string, ChatPendiente>()
@@ -90,16 +99,6 @@ export default async function LayoutAgencia({
 
   // Campanita: mensajes sin responder + tareas vencidas, cada aviso con
   // enlace directo a su sección.
-  const hoy = hoyEnMexico()
-  const { count: vencidas } = await supabase
-    .from('tareas')
-    .select('id', { count: 'exact', head: true })
-    .neq('estado', 'completada')
-    .lt('fecha_limite', hoy)
-
-  // Datos de la hoja "+" de la barra inferior (móvil).
-  const hoja = await cargarDatosHojaAgregar(supabase, hoy)
-
   const avisos: AvisoCampanita[] = pendientes.map((chat) => ({
     id: `chat-${chat.clienteId}`,
     titulo: `${chat.negocio} te escribió`,

@@ -59,10 +59,14 @@ describe('construirElementos', () => {
       'tarea:t1',
     ])
     expect(elementos[0].detalle).toBe('Ana')
+    expect(elementos[0].cliente).toBeNull()
     expect(elementos[1].titulo).toBe('Arranca: Promo julio')
+    expect(elementos[1].cliente).toBe('OfficeTure')
     expect(elementos[2].hora).toBe('14:30')
     expect(elementos[2].detalle).toBe('Linda Vargas · Estudio centro')
     expect(elementos[2].subtipo).toBe('sesion')
+    expect(elementos[2].cliente).toBe('Linda Vargas')
+    expect(elementos[3].cliente).toBeNull()
   })
 
   it('ordena por fecha, luego hora (sin hora al final), luego título', () => {
@@ -143,7 +147,7 @@ describe('construirElementos', () => {
     })
     expect(cita).toMatchObject({
       hora: '10:00', horaFin: '11:00', lugar: 'Oficina', origen: 'google', avisoMin: 30,
-      detalle: 'OfficeTure · Oficina',
+      detalle: 'OfficeTure · Oficina', cliente: 'OfficeTure',
     })
   })
 })

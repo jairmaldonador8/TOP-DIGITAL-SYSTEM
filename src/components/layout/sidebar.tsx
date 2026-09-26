@@ -97,7 +97,7 @@ export function Sidebar({ items, usuarioNombre, negocioNombre }: SidebarProps) {
   const activo = elementoActivo(items, pathname)
 
   return (
-    <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
+    <div className="flex h-full flex-col bg-sidebar pt-[env(safe-area-inset-top)] text-sidebar-foreground">
       {/* Marca */}
       <div className="flex h-16 shrink-0 items-center border-b border-sidebar-border px-5">
         <Link

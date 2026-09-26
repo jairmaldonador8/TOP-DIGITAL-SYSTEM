@@ -41,17 +41,20 @@ function Enlace({
   )
 }
 
-function MasTrigger() {
+function MasTrigger({ activo }: { activo: boolean }) {
   return (
     <SheetTrigger
       render={
         <button
           type="button"
-          className="flex min-w-14 flex-col items-center gap-1 py-1 text-[11px] font-medium text-muted-foreground"
+          className={cn(
+            'flex min-w-14 flex-col items-center gap-1 py-1 text-[11px] font-medium',
+            activo ? 'text-foreground' : 'text-muted-foreground'
+          )}
         />
       }
     >
-      <Menu aria-hidden className="size-6" />
+      <Menu aria-hidden className={cn('size-6', activo && 'text-marca-magenta')} />
       Más
     </SheetTrigger>
   )
@@ -67,6 +70,11 @@ export function BarraInferior({
   const pathname = usePathname()
   const activo = elementoActivo(items, pathname)
   const [agregar, setAgregar] = React.useState(false)
+  // "Más" se resalta cuando la sección activa no es una de las que ya
+  // tienen su propio ícono en la barra (Mi día, Calendario, Equipo).
+  const esMas =
+    !!activo &&
+    ![...PRINCIPALES, ...SECUNDARIOS].some((e) => e.href === activo.href)
 
   return (
     <>
@@ -87,7 +95,7 @@ export function BarraInferior({
           {SECUNDARIOS.map((e) => <Enlace key={e.href} {...e} activo={activo?.href === e.href} />)}
           {/* La key por pathname desmonta (y cierra) el menú al navegar. */}
           <Sheet key={pathname}>
-            <MasTrigger />
+            <MasTrigger activo={esMas} />
             <SheetContent side="left" showCloseButton={false} className="w-72 max-w-[85vw] gap-0 border-0 bg-sidebar p-0 sm:max-w-[85vw]">
               <SheetTitle className="sr-only">Más secciones</SheetTitle>
               <Sidebar items={items} usuarioNombre={usuarioNombre} />

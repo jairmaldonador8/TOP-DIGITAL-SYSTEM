@@ -26,4 +26,6 @@ export type ElementoCalendario = {
   /** Solo citas: datos crudos para abrir el formulario de edición. */
   descripcion: string | null
   clienteId: string | null
+  /** Nombre del cliente (sin depender de parsear `detalle`). */
+  cliente: string | null
 }

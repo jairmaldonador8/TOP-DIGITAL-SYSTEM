@@ -71,7 +71,7 @@ export function NotificacionesAgencia({
   return (
     <>
       {aviso && !enEseHilo ? (
-        <div className="animate-in fade-in slide-in-from-top-2 fixed top-20 right-4 z-50 duration-300">
+        <div className="animate-in fade-in slide-in-from-top-2 fixed top-[calc(5rem+env(safe-area-inset-top))] right-4 z-50 duration-300">
           <div className="bg-marca rounded-2xl p-[1.5px] shadow-2xl">
             <div className="flex w-80 items-start gap-3 rounded-[calc(1rem-1.5px)] bg-card p-4">
               <span

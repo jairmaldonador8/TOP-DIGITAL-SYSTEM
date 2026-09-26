@@ -63,6 +63,7 @@ const SIN_CITA = {
   avisoMin: null,
   descripcion: null,
   clienteId: null,
+  cliente: null,
 } as const
 
 /** Mapeo puro fuentes → elementos, ordenados por fecha (y hora). */
@@ -81,6 +82,7 @@ export function construirElementos(fuentes: FuentesCrudas): ElementoCalendario[]
       subtipo: null,
       href: '/agencia/campanias',
       ...SIN_CITA,
+      cliente: campania.clientes?.nombre_negocio ?? null,
     })
   }
 
@@ -112,6 +114,7 @@ export function construirElementos(fuentes: FuentesCrudas): ElementoCalendario[]
       subtipo: null,
       href: '/agencia/tareas',
       ...SIN_CITA,
+      cliente: tarea.clientes?.nombre_negocio ?? null,
     })
   }
 
@@ -136,6 +139,7 @@ export function construirElementos(fuentes: FuentesCrudas): ElementoCalendario[]
       avisoMin: evento.aviso_min,
       descripcion: evento.descripcion,
       clienteId: evento.cliente_id,
+      cliente: evento.clientes?.nombre_negocio ?? null,
     })
   }
 

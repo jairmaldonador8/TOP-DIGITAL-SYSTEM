@@ -26,8 +26,6 @@ type ChatFlotanteProps = {
   titulo?: string
   subtitulo?: string
   inicialAvatar?: string
-  /** Sube el botón y el panel en móvil cuando hay barra inferior fija. */
-  conBarraInferior?: boolean
 }
 
 /**
@@ -47,7 +45,6 @@ export function ChatFlotante({
   titulo = 'Tadeo',
   subtitulo = 'Top Digital · te responde personalmente',
   inicialAvatar = 'T',
-  conBarraInferior = false,
 }: ChatFlotanteProps) {
   const router = useRouter()
   const [abierto, setAbierto] = React.useState(false)
@@ -85,10 +82,7 @@ export function ChatFlotante({
       {abierto ? (
         <section
           aria-label={`Chat con ${titulo}`}
-          className={cn(
-            'fixed right-4 z-50 flex max-h-[min(560px,calc(100svh-8rem))] w-[min(24rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl',
-            conBarraInferior ? 'bottom-[calc(10rem+env(safe-area-inset-bottom))] lg:bottom-24' : 'bottom-24'
-          )}
+          className="fixed right-4 bottom-24 z-50 flex max-h-[min(560px,calc(100svh-8rem))] w-[min(24rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
         >
           <header className="bg-marca flex items-center gap-3 px-4 py-3 text-white">
             <span
@@ -131,10 +125,7 @@ export function ChatFlotante({
             ? 'Cerrar chat'
             : `Abrir chat con ${titulo}${noLeidos > 0 ? ` (${noLeidos} mensajes nuevos)` : ''}`
         }
-        className={cn(
-          'group fixed right-4 z-50 outline-none',
-          conBarraInferior ? 'bottom-[calc(5.5rem+env(safe-area-inset-bottom))] lg:bottom-4' : 'bottom-4'
-        )}
+        className="group fixed right-4 bottom-4 z-50 outline-none"
       >
         {/* Aro animado: llama la atención hasta que se abre el chat. */}
         {!abierto ? (

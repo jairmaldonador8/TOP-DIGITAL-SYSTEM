@@ -19,6 +19,7 @@ const elemento = (extra: Partial<ElementoCalendario>): ElementoCalendario => ({
   avisoMin: null,
   descripcion: null,
   clienteId: null,
+  cliente: null,
   ...extra,
 })
 
