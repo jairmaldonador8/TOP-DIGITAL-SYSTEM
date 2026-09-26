@@ -1,13 +1,11 @@
 import type { Metadata } from 'next'
 
-import {
-  EventoFormDialog,
-  type ClienteOpcionCal,
-} from '@/components/calendario/evento-form'
+import { BotonAgregar } from '@/components/agenda/mi-dia/boton-agregar'
 import {
   VistaCalendario,
   type DiaCalendario,
 } from '@/components/calendario/vista-calendario'
+import { cargarDatosHojaAgregar } from '@/lib/agenda/hoja-server'
 import { cargarElementos } from '@/lib/calendario/fuentes'
 import { hoyEnMexico } from '@/lib/formato'
 import { createClient } from '@/lib/supabase/server'
@@ -17,6 +15,7 @@ export const metadata: Metadata = {
 }
 
 const MES = /^\d{4}-(0[1-9]|1[0-2])$/
+const DIA = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/
 
 const nombreMes = new Intl.DateTimeFormat('es-MX', {
   timeZone: 'UTC',
@@ -61,15 +60,28 @@ function diasDelGrid(mes: string, hoy: string): DiaCalendario[] {
 export default async function PaginaCalendario({
   searchParams,
 }: {
-  searchParams: Promise<{ mes?: string }>
+  searchParams: Promise<{ mes?: string; dia?: string }>
 }) {
-  const { mes: mesParam } = await searchParams
+  const { mes: mesParam, dia: diaParam } = await searchParams
   const hoy = hoyEnMexico()
   const mes = mesParam && MES.test(mesParam) ? mesParam : hoy.slice(0, 7)
 
   const dias = diasDelGrid(mes, hoy)
   const desde = dias[0].fecha
-  const hasta = dias[dias.length - 1].fecha
+  // La agenda lista 7 días desde el seleccionado: si es el último del
+  // grid necesita 6 días más allá.
+  const finAgenda = aDia(dias[dias.length - 1].fecha)
+  finAgenda.setUTCDate(finAgenda.getUTCDate() + 6)
+  const hasta = aISO(finAgenda)
+
+  // Día seleccionado: ?dia= (flechas de semana) si cae en el grid; si no,
+  // hoy cuando es el mes actual; si no, el día 1.
+  const diaInicial =
+    diaParam && DIA.test(diaParam) && dias.some((d) => d.fecha === diaParam)
+      ? diaParam
+      : hoy.slice(0, 7) === mes
+        ? hoy
+        : `${mes}-01`
 
   const cursor = aDia(`${mes}-15`)
   cursor.setUTCMonth(cursor.getUTCMonth() - 1)
@@ -78,14 +90,9 @@ export default async function PaginaCalendario({
   const mesSiguiente = aISO(cursor).slice(0, 7)
 
   const supabase = await createClient()
-  const [elementos, clientesRes] = await Promise.all([
+  const [elementos, hoja] = await Promise.all([
     cargarElementos(supabase, desde, hasta),
-    supabase
-      .from('clientes')
-      .select('id, nombre_negocio')
-      .eq('estado', 'activo')
-      .eq('es_agencia', false)
-      .order('nombre_negocio'),
+    cargarDatosHojaAgregar(supabase, hoy),
   ])
 
   const urlIcs = `https://www.topdigital.company/api/calendario/ics?token=${process.env.ICS_SECRET ?? ''}`
@@ -96,21 +103,25 @@ export default async function PaginaCalendario({
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Calendario</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Campañas, entregas del equipo, tareas y tus eventos — todo en una
+            Campañas, entregas del equipo, tareas y tus citas — todo en una
             sola agenda.
           </p>
         </div>
-        <EventoFormDialog
-          clientes={(clientesRes.data ?? []) as ClienteOpcionCal[]}
-        />
+        <BotonAgregar datos={hoja} inicial="cita" etiqueta="Agendar" />
       </header>
 
+      {/* La key reinicia el día seleccionado al navegar de mes o semana. */}
       <VistaCalendario
+        key={`${mes}-${diaInicial}`}
+        mes={mes}
         mesEtiqueta={nombreMes.format(aDia(`${mes}-01`))}
         mesAnterior={mesAnterior}
         mesSiguiente={mesSiguiente}
+        hoy={hoy}
+        diaInicial={diaInicial}
         dias={dias}
         elementos={elementos}
+        clientes={hoja.clientes}
         urlIcs={urlIcs}
       />
     </div>

@@ -2,17 +2,19 @@
 
 import * as React from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   CalendarPlusIcon,
   CheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   CopyIcon,
-  Trash2Icon,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { eliminarEvento } from '@/app/(app)/agencia/calendario/actions'
+import type { ClienteOpcionCita } from '@/components/agenda/cita-form'
+import { AgendaDias, COLOR, ETIQUETA } from '@/components/calendario/agenda-dias'
+import { FranjaSemana, sumarDias } from '@/components/calendario/franja-semana'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import {
@@ -26,20 +28,6 @@ import type { ElementoCalendario, TipoElemento } from '@/lib/calendario/tipos'
 import { formatoFechaCorta } from '@/lib/formato'
 import { cn } from '@/lib/utils'
 
-const COLOR: Record<TipoElemento, string> = {
-  campania: 'bg-marca-violeta',
-  encargo: 'bg-marca-magenta',
-  tarea: 'bg-marca-naranja',
-  evento: 'bg-sky-500',
-}
-
-const ETIQUETA: Record<TipoElemento, string> = {
-  campania: 'Campaña',
-  encargo: 'Entrega',
-  tarea: 'Tarea',
-  evento: 'Evento',
-}
-
 export type DiaCalendario = {
   fecha: string
   dia: number
@@ -47,27 +35,41 @@ export type DiaCalendario = {
   esHoy: boolean
 }
 
+type Vista = 'agenda' | 'mes'
+
 /**
- * Vista de mes + agenda del calendario de operación. El grid y los
- * elementos llegan calculados del server (hora de México); aquí solo hay
- * selección de día, detalle y el dialog de Google Calendar.
+ * Calendario de operación. En el celular abre en la agenda (franja de
+ * semana + 7 días) con un control "Agenda | Mes"; en escritorio se ven
+ * ambos. El grid, "hoy" y el día inicial llegan calculados del server
+ * (hora de México) para no desfasar la hidratación.
  */
 export function VistaCalendario({
+  mes,
   mesEtiqueta,
   mesAnterior,
   mesSiguiente,
+  hoy,
+  diaInicial,
   dias,
   elementos,
+  clientes,
   urlIcs,
 }: {
+  /** YYYY-MM del grid. */
+  mes: string
   mesEtiqueta: string
   mesAnterior: string
   mesSiguiente: string
+  hoy: string
+  diaInicial: string
   dias: DiaCalendario[]
   elementos: ElementoCalendario[]
+  clientes: ClienteOpcionCita[]
   urlIcs: string
 }) {
-  const [diaAbierto, setDiaAbierto] = React.useState<string | null>(null)
+  const router = useRouter()
+  const [vista, setVista] = React.useState<Vista>('agenda')
+  const [seleccionado, setSeleccionado] = React.useState(diaInicial)
   const [googleAbierto, setGoogleAbierto] = React.useState(false)
 
   const porDia = React.useMemo(() => {
@@ -80,9 +82,19 @@ export function VistaCalendario({
     return mapa
   }, [elementos])
 
-  const delMes = elementos.filter((e) =>
-    dias.some((d) => d.delMes && d.fecha === e.fecha)
-  )
+  // Dentro del mes basta el estado; si la semana nueva cae en otro mes se
+  // navega (igual que las flechas de mes) para traer sus elementos.
+  const moverSemana = (semanas: 1 | -1) => {
+    const destino = sumarDias(seleccionado, semanas * 7)
+    const mesDestino = destino.slice(0, 7)
+    if (mesDestino === mes) setSeleccionado(destino)
+    else router.push(`/agencia/calendario?mes=${mesDestino}&dia=${destino}`)
+  }
+
+  const elegirEnMes = (fecha: string) => {
+    setSeleccionado(fecha)
+    setVista('agenda')
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -90,19 +102,21 @@ export function VistaCalendario({
         <div className="flex items-center gap-1">
           <Button
             variant="ghost"
-            size="icon-sm"
+            size="icon"
+            className="size-11"
             aria-label="Mes anterior"
             render={<Link href={`/agencia/calendario?mes=${mesAnterior}`} />}
             nativeButton={false}
           >
             <ChevronLeftIcon aria-hidden />
           </Button>
-          <p className="min-w-36 text-center text-sm font-semibold capitalize">
+          <p className="min-w-32 text-center text-sm font-semibold capitalize">
             {mesEtiqueta}
           </p>
           <Button
             variant="ghost"
-            size="icon-sm"
+            size="icon"
+            className="size-11"
             aria-label="Mes siguiente"
             render={<Link href={`/agencia/calendario?mes=${mesSiguiente}`} />}
             nativeButton={false}
@@ -111,17 +125,49 @@ export function VistaCalendario({
           </Button>
           <Button
             variant="outline"
-            size="sm"
+            className="h-11 rounded-full px-4"
             render={<Link href="/agencia/calendario" />}
             nativeButton={false}
+            // Si ya estamos en el mes de hoy la key no cambia: se regresa a mano.
+            onClick={() => setSeleccionado(hoy)}
           >
             Hoy
           </Button>
         </div>
-        <Button variant="outline" size="sm" onClick={() => setGoogleAbierto(true)}>
+        <Button
+          variant="outline"
+          className="h-11 rounded-full px-4"
+          onClick={() => setGoogleAbierto(true)}
+        >
           <CalendarPlusIcon data-icon="inline-start" aria-hidden />
-          Ver en Google Calendar
+          <span className="sm:hidden">Google</span>
+          <span className="hidden sm:inline">Ver en Google Calendar</span>
         </Button>
+      </div>
+
+      {/* Control segmentado: solo en móvil (en escritorio se ven ambas). */}
+      <div
+        role="tablist"
+        aria-label="Vista del calendario"
+        className="grid grid-cols-2 gap-1 rounded-full bg-muted p-1 lg:hidden"
+      >
+        {(['agenda', 'mes'] as const).map((opcion) => (
+          <button
+            key={opcion}
+            type="button"
+            role="tab"
+            aria-selected={vista === opcion}
+            onClick={() => setVista(opcion)}
+            className={cn(
+              'h-11 rounded-full text-sm font-semibold transition-colors',
+              vista === opcion
+                ? 'bg-marca text-white shadow-md shadow-marca-magenta/20'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            {opcion === 'agenda' ? 'Agenda' : 'Mes'}
+          </button>
+        ))}
       </div>
 
       {/* Leyenda */}
@@ -134,8 +180,13 @@ export function VistaCalendario({
         ))}
       </div>
 
-      {/* Grid del mes */}
-      <Card className="gap-2 px-3 py-4 sm:px-4">
+      {/* Grid del mes: tocar un día lo selecciona y abre su agenda. */}
+      <Card
+        className={cn(
+          'gap-2 px-2 py-4 sm:px-4 lg:flex',
+          vista === 'mes' ? 'flex' : 'hidden'
+        )}
+      >
         <div className="grid grid-cols-7 text-center text-[11px] font-semibold text-muted-foreground">
           {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((dia, i) => (
             <span key={i}>{dia}</span>
@@ -148,14 +199,14 @@ export function VistaCalendario({
               <button
                 key={dia.fecha}
                 type="button"
-                disabled={suyos.length === 0}
-                onClick={() => setDiaAbierto(dia.fecha)}
+                onClick={() => elegirEnMes(dia.fecha)}
+                aria-pressed={dia.fecha === seleccionado}
                 aria-label={`${formatoFechaCorta(dia.fecha)}: ${suyos.length} ${suyos.length === 1 ? 'elemento' : 'elementos'}`}
                 className={cn(
-                  'flex min-h-14 flex-col items-center gap-1 rounded-lg pt-1.5 outline-none transition-colors sm:min-h-20 sm:items-stretch sm:px-1.5',
+                  'flex min-h-14 flex-col items-center gap-1 rounded-xl pt-1.5 outline-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring/60 sm:min-h-20 sm:items-stretch sm:px-1.5',
                   dia.delMes ? 'text-foreground' : 'text-muted-foreground/40',
-                  suyos.length > 0 && 'cursor-pointer hover:bg-muted/50',
-                  dia.esHoy && 'ring-2 ring-marca-violeta/70'
+                  dia.esHoy && 'ring-2 ring-marca-violeta/70',
+                  dia.fecha === seleccionado && 'bg-muted'
                 )}
               >
                 <span
@@ -200,43 +251,19 @@ export function VistaCalendario({
         </div>
       </Card>
 
-      {/* Agenda del mes */}
-      <Card className="gap-3 px-4 py-4 sm:px-5">
-        <p className="text-sm font-semibold">Agenda del mes</p>
-        {delMes.length === 0 ? (
-          <p className="py-4 text-center text-sm text-muted-foreground">
-            Sin fechas este mes. Agrega un evento o asigna fechas a campañas,
-            encargos y tareas.
-          </p>
-        ) : (
-          <ul className="flex flex-col">
-            {delMes.map((elemento) => (
-              <FilaAgenda key={elemento.uid} elemento={elemento} />
-            ))}
-          </ul>
-        )}
-      </Card>
-
-      {/* Detalle del día */}
-      <Dialog
-        open={diaAbierto !== null}
-        onOpenChange={(abre) => !abre && setDiaAbierto(null)}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {diaAbierto ? formatoFechaCorta(diaAbierto) : ''}
-            </DialogTitle>
-          </DialogHeader>
-          <ul className="flex flex-col">
-            {(diaAbierto ? (porDia.get(diaAbierto) ?? []) : []).map(
-              (elemento) => (
-                <FilaAgenda key={elemento.uid} elemento={elemento} sinFecha />
-              )
-            )}
-          </ul>
-        </DialogContent>
-      </Dialog>
+      {/* Agenda: franja de semana (móvil) + 7 días desde el seleccionado. */}
+      <div className={cn('flex-col gap-4 lg:flex', vista === 'agenda' ? 'flex' : 'hidden')}>
+        <Card className="px-2 py-2 lg:hidden">
+          <FranjaSemana
+            seleccionado={seleccionado}
+            hoy={hoy}
+            conElementos={(fecha) => (porDia.get(fecha)?.length ?? 0) > 0}
+            alElegir={setSeleccionado}
+            alMoverSemana={moverSemana}
+          />
+        </Card>
+        <AgendaDias desde={seleccionado} hoy={hoy} porDia={porDia} clientes={clientes} />
+      </div>
 
       <GoogleDialog
         abierto={googleAbierto}
@@ -244,75 +271,6 @@ export function VistaCalendario({
         urlIcs={urlIcs}
       />
     </div>
-  )
-}
-
-function FilaAgenda({
-  elemento,
-  sinFecha = false,
-}: {
-  elemento: ElementoCalendario
-  sinFecha?: boolean
-}) {
-  const [pendiente, iniciarTransicion] = React.useTransition()
-
-  const eliminar = () => {
-    iniciarTransicion(async () => {
-      const resultado = await eliminarEvento(elemento.id)
-      if (resultado.ok) toast.success('Evento eliminado')
-      else toast.error(resultado.mensaje)
-    })
-  }
-
-  const contenido = (
-    <>
-      <span
-        aria-label={ETIQUETA[elemento.tipo]}
-        title={ETIQUETA[elemento.tipo]}
-        role="img"
-        className={cn('mt-1.5 size-2 shrink-0 rounded-full', COLOR[elemento.tipo])}
-      />
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-medium">
-          {elemento.titulo}
-        </span>
-        <span className="block truncate text-xs text-muted-foreground">
-          {[
-            sinFecha ? null : formatoFechaCorta(elemento.fecha),
-            elemento.hora,
-            elemento.detalle,
-          ]
-            .filter(Boolean)
-            .join(' · ')}
-        </span>
-      </span>
-    </>
-  )
-
-  return (
-    <li className="flex items-start gap-2.5 border-b border-border py-2.5 last:border-0">
-      {elemento.tipo === 'evento' ? (
-        <>
-          {contenido}
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={`Eliminar ${elemento.titulo}`}
-            disabled={pendiente}
-            onClick={eliminar}
-          >
-            <Trash2Icon aria-hidden className="text-muted-foreground" />
-          </Button>
-        </>
-      ) : (
-        <Link
-          href={elemento.href}
-          className="flex min-w-0 flex-1 items-start gap-2.5 outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
-        >
-          {contenido}
-        </Link>
-      )}
-    </li>
   )
 }
 
@@ -340,7 +298,7 @@ function GoogleDialog({
         <DialogHeader>
           <DialogTitle>Ver en Google Calendar</DialogTitle>
           <DialogDescription>
-            Suscríbete una vez y todo (campañas, entregas, tareas y eventos)
+            Suscríbete una vez y todo (campañas, entregas, tareas y citas)
             aparecerá en tu Google Calendar, también en el celular.
           </DialogDescription>
         </DialogHeader>
@@ -364,7 +322,8 @@ function GoogleDialog({
               </code>
               <Button
                 variant="outline"
-                size="icon-sm"
+                size="icon"
+                className="size-11"
                 aria-label="Copiar URL"
                 onClick={copiar}
               >
