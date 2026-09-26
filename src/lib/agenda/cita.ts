@@ -48,6 +48,9 @@ type Resultado<T> = { ok: true; datos: T } | { ok: false; errores: Record<string
 
 const texto = (v: string | undefined) => (v ?? '').trim()
 const nulo = (v: string | undefined) => texto(v) || null
+// Postgres regresa las columnas `time` como HH:MM:SS al prellenar
+// formularios de edición; la UI y la validación solo usan HH:MM.
+const hora5 = (v: string | null) => (v ? v.slice(0, 5) : v)
 
 export function validarCita(v: Record<string, string>): Resultado<DatosCita> {
   const errores: Record<string, string> = {}
@@ -59,11 +62,11 @@ export function validarCita(v: Record<string, string>): Resultado<DatosCita> {
   const fecha = texto(v.fecha)
   if (!FECHA.test(fecha)) errores.fecha = 'Elige el día'
 
-  const hora = nulo(v.hora)
+  const hora = hora5(nulo(v.hora))
   if (hora && !HORA.test(hora)) errores.hora = 'Hora no válida'
 
   // Sin hora = todo el día: no aplica hora de fin ni aviso previo.
-  let horaFin = hora ? nulo(v.hora_fin) : null
+  let horaFin = hora ? hora5(nulo(v.hora_fin)) : null
   if (horaFin && !HORA.test(horaFin)) errores.hora_fin = 'Hora no válida'
   else if (horaFin && hora && horaFin <= hora) errores.hora_fin = 'Debe terminar después de empezar'
   if (errores.hora_fin) horaFin = null
@@ -98,8 +101,10 @@ export function validarPendiente(v: Record<string, string>): Resultado<DatosPend
   const fecha = nulo(v.fecha_limite)
   if (fecha && !FECHA.test(fecha)) errores.fecha_limite = 'Fecha no válida'
 
-  const hora = nulo(v.hora)
-  if (hora && !HORA.test(hora)) errores.hora = 'Hora no válida'
+  const horaBruta = hora5(nulo(v.hora))
+  if (horaBruta && !HORA.test(horaBruta)) errores.hora = 'Hora no válida'
+  // Sin fecha límite, una hora no tiene sentido (igual que citas sin hora).
+  const hora = fecha ? horaBruta : null
 
   const clienteId = nulo(v.cliente_id)
   if (clienteId && !esUuid(clienteId)) errores.cliente_id = 'Cliente no válido'

@@ -35,6 +35,13 @@ describe('validarCita', () => {
   it('las opciones de aviso incluyen "sin aviso"', () => {
     expect(AVISOS_MIN.map((a) => a.value)).toContain('')
   })
+
+  it('acepta HH:MM:SS (formularios de edición prellenados desde Postgres)', () => {
+    const r = validarCita({
+      titulo: 'Junta', fecha: '2026-09-26', hora: '10:00:00', hora_fin: '11:00:00', aviso_min: '',
+    })
+    expect(r.ok && r.datos).toMatchObject({ hora: '10:00', hora_fin: '11:00' })
+  })
 })
 
 describe('validarPendiente', () => {
@@ -48,5 +55,15 @@ describe('validarPendiente', () => {
   it('rechaza cliente con forma inválida', () => {
     const r = validarPendiente({ titulo: 'x', cliente_id: 'nope' })
     expect(r.ok).toBe(false)
+  })
+
+  it('sin fecha límite, la hora no tiene sentido y se descarta', () => {
+    const r = validarPendiente({ titulo: 'Pagar tarjeta', hora: '10:00' })
+    expect(r.ok && r.datos.hora).toBeNull()
+  })
+
+  it('acepta HH:MM:SS (formularios de edición prellenados desde Postgres)', () => {
+    const r = validarPendiente({ titulo: 'Pagar tarjeta', fecha_limite: '2026-09-26', hora: '10:00:00' })
+    expect(r.ok && r.datos.hora).toBe('10:00')
   })
 })
