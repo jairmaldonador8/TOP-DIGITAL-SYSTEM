@@ -121,7 +121,7 @@ export function NotificacionesAgencia({
           title={pendientes
             .map((chat) => `${chat.negocio} (${chat.cantidad})`)
             .join(', ')}
-          className="group fixed right-4 bottom-4 z-50 outline-none"
+          className="group fixed right-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-50 outline-none lg:bottom-4"
         >
           <span
             aria-hidden

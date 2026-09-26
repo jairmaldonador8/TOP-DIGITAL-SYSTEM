@@ -42,6 +42,11 @@ type TopbarProps = {
    * server component). Si se omite, se muestra la campana estática.
    */
   acciones?: React.ReactNode
+  /**
+   * Oculta el menú hamburguesa en móvil (la zona agencia usa la barra
+   * inferior). El portal y la zona equipo lo conservan.
+   */
+  sinMenuMovil?: boolean
 }
 
 /**
@@ -54,40 +59,45 @@ export function Topbar({
   usuarioNombre,
   negocioNombre,
   acciones,
+  sinMenuMovil = false,
 }: TopbarProps) {
   const pathname = usePathname()
   const activo = elementoActivo(items, pathname)
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-3 border-b border-border/70 bg-background/85 px-4 backdrop-blur-md lg:px-8">
+    <header className="sticky top-0 z-40 flex min-h-[calc(4rem+env(safe-area-inset-top))] shrink-0 items-center gap-3 border-b border-border/70 bg-background/85 px-4 pt-[env(safe-area-inset-top)] backdrop-blur-md lg:px-8">
+      {/* pt (y alto mínimo) por el área segura: con status bar
+          black-translucent el contenido queda debajo del reloj del iPhone. */}
       {/* Menú móvil: la navegación se colapsa a un sheet lateral. La key
           por pathname desmonta (y cierra) el sheet al navegar. */}
-      <Sheet key={pathname}>
-        <SheetTrigger
-          render={
-            <Button
-              variant="ghost"
-              size="icon"
-              className="-ml-1 lg:hidden"
-              aria-label="Abrir menú de navegación"
+      {sinMenuMovil ? null : (
+        <Sheet key={pathname}>
+          <SheetTrigger
+            render={
+              <Button
+                variant="ghost"
+                size="icon"
+                className="-ml-1 lg:hidden"
+                aria-label="Abrir menú de navegación"
+              />
+            }
+          >
+            <Menu aria-hidden />
+          </SheetTrigger>
+          <SheetContent
+            side="left"
+            showCloseButton={false}
+            className="w-72 max-w-[85vw] gap-0 border-0 bg-sidebar p-0 sm:max-w-[85vw]"
+          >
+            <SheetTitle className="sr-only">Menú de navegación</SheetTitle>
+            <Sidebar
+              items={items}
+              usuarioNombre={usuarioNombre}
+              negocioNombre={negocioNombre}
             />
-          }
-        >
-          <Menu aria-hidden />
-        </SheetTrigger>
-        <SheetContent
-          side="left"
-          showCloseButton={false}
-          className="w-72 max-w-[85vw] gap-0 border-0 bg-sidebar p-0 sm:max-w-[85vw]"
-        >
-          <SheetTitle className="sr-only">Menú de navegación</SheetTitle>
-          <Sidebar
-            items={items}
-            usuarioNombre={usuarioNombre}
-            negocioNombre={negocioNombre}
-          />
-        </SheetContent>
-      </Sheet>
+          </SheetContent>
+        </Sheet>
+      )}
 
       {/* Marca */}
       <Link

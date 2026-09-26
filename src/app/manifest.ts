@@ -10,7 +10,12 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: 'Top Digital',
     description:
       'Plataforma de Top Digital: seguimiento de leads, campañas y resultados para tu negocio.',
+    // id fijo: no cambiarlo nunca (identifica la app instalada).
+    id: '/',
+    // start_url '/' y no '/agencia': el portal también se instala y el
+    // proxy redirige por rol.
     start_url: '/',
+    scope: '/',
     display: 'standalone',
     background_color: '#0d0b10',
     theme_color: '#0d0b10',

@@ -11,8 +11,10 @@ import {
   Campanita,
   type AvisoCampanita,
 } from '@/components/layout/campanita'
+import { BarraInferior } from '@/components/layout/barra-inferior'
 import type { ElementoNav } from '@/components/layout/sidebar'
 import { Topbar } from '@/components/layout/topbar'
+import { cargarDatosHojaAgregar } from '@/lib/agenda/hoja-server'
 import { destinoPorRol } from '@/lib/auth/redirect'
 import { usuarioActual } from '@/lib/auth/usuario-actual'
 import { hoyEnMexico } from '@/lib/formato'
@@ -95,6 +97,9 @@ export default async function LayoutAgencia({
     .neq('estado', 'completada')
     .lt('fecha_limite', hoy)
 
+  // Datos de la hoja "+" de la barra inferior (móvil).
+  const hoja = await cargarDatosHojaAgregar(supabase, hoy)
+
   const avisos: AvisoCampanita[] = pendientes.map((chat) => ({
     id: `chat-${chat.clienteId}`,
     titulo: `${chat.negocio} te escribió`,
@@ -123,8 +128,13 @@ export default async function LayoutAgencia({
         items={ELEMENTOS_AGENCIA}
         usuarioNombre={nombre}
         acciones={<Campanita avisos={avisos} sinLeer={sinLeer} />}
+        sinMenuMovil
       />
-      <main className="flex-1 px-4 py-6 lg:px-8 lg:py-8">{children}</main>
+      {/* En móvil el padding inferior deja libre la barra fija. */}
+      <main className="flex-1 px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:px-8 lg:py-8">
+        {children}
+      </main>
+      <BarraInferior items={ELEMENTOS_AGENCIA} usuarioNombre={nombre} datos={hoja} />
       <NotificacionesAgencia pendientes={pendientes} miId={miId} />
       {actual.introVista ? null : <TourAgencia action={marcarIntroVista} />}
     </div>

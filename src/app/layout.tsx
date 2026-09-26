@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Poppins } from "next/font/google";
 import "./globals.css";
 
@@ -33,8 +33,10 @@ export const metadata: Metadata = {
   },
 };
 
-export const viewport = {
+// viewportFit 'cover': sin él env(safe-area-inset-*) vale 0 en el iPhone.
+export const viewport: Viewport = {
   themeColor: "#0d0b10",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
