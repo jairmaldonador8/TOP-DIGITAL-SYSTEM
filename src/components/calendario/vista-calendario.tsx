@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import {
   CalendarPlusIcon,
   CheckIcon,
@@ -35,7 +35,7 @@ export type DiaCalendario = {
   esHoy: boolean
 }
 
-type Vista = 'agenda' | 'mes'
+export type Vista = 'agenda' | 'mes'
 
 /**
  * Calendario de operación. En el celular abre en la agenda (franja de
@@ -50,6 +50,7 @@ export function VistaCalendario({
   mesSiguiente,
   hoy,
   diaInicial,
+  vistaInicial,
   dias,
   elementos,
   clientes,
@@ -62,15 +63,28 @@ export function VistaCalendario({
   mesSiguiente: string
   hoy: string
   diaInicial: string
+  /** 'mes' | 'agenda' validado en el server desde ?vista=. */
+  vistaInicial: Vista
   dias: DiaCalendario[]
   elementos: ElementoCalendario[]
   clientes: ClienteOpcionCita[]
   urlIcs: string
 }) {
   const router = useRouter()
-  const [vista, setVista] = React.useState<Vista>('agenda')
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const [vista, setVista] = React.useState<Vista>(vistaInicial)
   const [seleccionado, setSeleccionado] = React.useState(diaInicial)
   const [googleAbierto, setGoogleAbierto] = React.useState(false)
+
+  // ?vista= sobrevive al remount de las flechas de mes (key cambia) para
+  // que no se regrese a "Agenda" en cada navegación en móvil.
+  const cambiarVista = (siguiente: Vista) => {
+    setVista(siguiente)
+    const params = new URLSearchParams(searchParams)
+    params.set('vista', siguiente)
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false })
+  }
 
   const porDia = React.useMemo(() => {
     const mapa = new Map<string, ElementoCalendario[]>()
@@ -88,12 +102,12 @@ export function VistaCalendario({
     const destino = sumarDias(seleccionado, semanas * 7)
     const mesDestino = destino.slice(0, 7)
     if (mesDestino === mes) setSeleccionado(destino)
-    else router.push(`/agencia/calendario?mes=${mesDestino}&dia=${destino}`)
+    else router.push(`/agencia/calendario?mes=${mesDestino}&dia=${destino}&vista=${vista}`)
   }
 
   const elegirEnMes = (fecha: string) => {
     setSeleccionado(fecha)
-    setVista('agenda')
+    cambiarVista('agenda')
   }
 
   return (
@@ -105,12 +119,12 @@ export function VistaCalendario({
             size="icon"
             className="size-11"
             aria-label="Mes anterior"
-            render={<Link href={`/agencia/calendario?mes=${mesAnterior}`} />}
+            render={<Link href={`/agencia/calendario?mes=${mesAnterior}&vista=${vista}`} />}
             nativeButton={false}
           >
             <ChevronLeftIcon aria-hidden />
           </Button>
-          <p className="min-w-32 text-center text-sm font-semibold capitalize">
+          <p className="min-w-32 text-center text-sm font-semibold">
             {mesEtiqueta}
           </p>
           <Button
@@ -118,7 +132,7 @@ export function VistaCalendario({
             size="icon"
             className="size-11"
             aria-label="Mes siguiente"
-            render={<Link href={`/agencia/calendario?mes=${mesSiguiente}`} />}
+            render={<Link href={`/agencia/calendario?mes=${mesSiguiente}&vista=${vista}`} />}
             nativeButton={false}
           >
             <ChevronRightIcon aria-hidden />
@@ -126,7 +140,7 @@ export function VistaCalendario({
           <Button
             variant="outline"
             className="h-11 rounded-full px-4"
-            render={<Link href="/agencia/calendario" />}
+            render={<Link href={`/agencia/calendario?vista=${vista}`} />}
             nativeButton={false}
             // Si ya estamos en el mes de hoy la key no cambia: se regresa a mano.
             onClick={() => setSeleccionado(hoy)}
@@ -136,18 +150,20 @@ export function VistaCalendario({
         </div>
         <Button
           variant="outline"
-          className="h-11 rounded-full px-4"
+          size="icon"
+          className="size-11 shrink-0 rounded-full sm:h-11 sm:w-auto sm:gap-1.5 sm:px-4"
+          aria-label="Ver en Google Calendar"
           onClick={() => setGoogleAbierto(true)}
         >
           <CalendarPlusIcon data-icon="inline-start" aria-hidden />
-          <span className="sm:hidden">Google</span>
           <span className="hidden sm:inline">Ver en Google Calendar</span>
         </Button>
       </div>
 
-      {/* Control segmentado: solo en móvil (en escritorio se ven ambas). */}
+      {/* Control segmentado: solo en móvil (en escritorio se ven ambas). No
+          hay tabpanel: son dos botones de alternancia, no pestañas ARIA. */}
       <div
-        role="tablist"
+        role="group"
         aria-label="Vista del calendario"
         className="grid grid-cols-2 gap-1 rounded-full bg-muted p-1 lg:hidden"
       >
@@ -155,9 +171,8 @@ export function VistaCalendario({
           <button
             key={opcion}
             type="button"
-            role="tab"
-            aria-selected={vista === opcion}
-            onClick={() => setVista(opcion)}
+            aria-pressed={vista === opcion}
+            onClick={() => cambiarVista(opcion)}
             className={cn(
               'h-11 rounded-full text-sm font-semibold transition-colors',
               vista === opcion
@@ -257,7 +272,7 @@ export function VistaCalendario({
           <FranjaSemana
             seleccionado={seleccionado}
             hoy={hoy}
-            conElementos={(fecha) => (porDia.get(fecha)?.length ?? 0) > 0}
+            elementosPorDia={(fecha) => porDia.get(fecha)?.length ?? 0}
             alElegir={setSeleccionado}
             alMoverSemana={moverSemana}
           />

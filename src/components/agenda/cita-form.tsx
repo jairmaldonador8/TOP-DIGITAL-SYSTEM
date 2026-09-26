@@ -59,10 +59,13 @@ function opcionesAviso(actual: number | null): OpcionAviso[] {
 export function CitaForm({
   clientes,
   cita,
+  hoy,
   alExito,
 }: {
   clientes: ClienteOpcionCita[]
   cita?: CitaEditable
+  /** 'YYYY-MM-DD' de hoy (del server): día por defecto al crear. */
+  hoy: string
   alExito: () => void
 }) {
   const [estado, enviar, pendiente] = useActionState<ResultadoAccion, FormData>(
@@ -97,7 +100,7 @@ export function CitaForm({
         aviso_min: cita.avisoMin != null ? String(cita.avisoMin) : '',
         descripcion: cita.descripcion ?? '',
       }
-    : {}
+    : { fecha: hoy }
   const valores = { ...inicial, ...capturados }
 
   // Sin hora = todo el día: se esconden "Termina" y "Avisarme".

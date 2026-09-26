@@ -4,6 +4,7 @@ import { BotonAgregar } from '@/components/agenda/mi-dia/boton-agregar'
 import {
   VistaCalendario,
   type DiaCalendario,
+  type Vista,
 } from '@/components/calendario/vista-calendario'
 import { cargarDatosHojaAgregar } from '@/lib/agenda/hoja-server'
 import { cargarElementos } from '@/lib/calendario/fuentes'
@@ -16,12 +17,18 @@ export const metadata: Metadata = {
 
 const MES = /^\d{4}-(0[1-9]|1[0-2])$/
 const DIA = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/
+const VISTA = /^(mes|agenda)$/
 
 const nombreMes = new Intl.DateTimeFormat('es-MX', {
   timeZone: 'UTC',
   month: 'long',
   year: 'numeric',
 })
+
+/** Intl entrega "septiembre de 2026": solo la primera letra va en mayúscula. */
+function capitalizarInicial(texto: string): string {
+  return texto.charAt(0).toUpperCase() + texto.slice(1)
+}
 
 /** Aritmética de fechas anclada a mediodía UTC (patrón #418). */
 function aDia(fecha: string): Date {
@@ -60,11 +67,12 @@ function diasDelGrid(mes: string, hoy: string): DiaCalendario[] {
 export default async function PaginaCalendario({
   searchParams,
 }: {
-  searchParams: Promise<{ mes?: string; dia?: string }>
+  searchParams: Promise<{ mes?: string; dia?: string; vista?: string }>
 }) {
-  const { mes: mesParam, dia: diaParam } = await searchParams
+  const { mes: mesParam, dia: diaParam, vista: vistaParam } = await searchParams
   const hoy = hoyEnMexico()
   const mes = mesParam && MES.test(mesParam) ? mesParam : hoy.slice(0, 7)
+  const vista: Vista = vistaParam && VISTA.test(vistaParam) ? (vistaParam as Vista) : 'agenda'
 
   const dias = diasDelGrid(mes, hoy)
   const desde = dias[0].fecha
@@ -114,11 +122,12 @@ export default async function PaginaCalendario({
       <VistaCalendario
         key={`${mes}-${diaInicial}`}
         mes={mes}
-        mesEtiqueta={nombreMes.format(aDia(`${mes}-01`))}
+        mesEtiqueta={capitalizarInicial(nombreMes.format(aDia(`${mes}-01`)))}
         mesAnterior={mesAnterior}
         mesSiguiente={mesSiguiente}
         hoy={hoy}
         diaInicial={diaInicial}
+        vistaInicial={vista}
         dias={dias}
         elementos={elementos}
         clientes={hoja.clientes}

@@ -81,8 +81,8 @@ export function AgendaDias({
         {fechas.map((fecha) => {
           const suyos = porDia.get(fecha) ?? []
           return (
-            <section key={fecha} aria-label={formatoFechaLarga(new Date(`${fecha}T12:00:00Z`))}>
-              <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold">
+            <section key={fecha} aria-labelledby={`dia-${fecha}`}>
+              <h3 id={`dia-${fecha}`} className="mb-2 flex items-center gap-2 text-sm font-semibold">
                 {formatoFechaLarga(new Date(`${fecha}T12:00:00Z`))}
                 {fecha === hoy ? (
                   <span className="bg-marca rounded-full px-2 py-0.5 text-[11px] font-semibold text-white">
@@ -118,7 +118,7 @@ export function AgendaDias({
             <SheetDescription className="sr-only">Cambia los datos de la cita o elimínala</SheetDescription>
           </SheetHeader>
           {cita ? (
-            <CitaForm key={`${cita.id}-${apertura}`} clientes={clientes} cita={cita} alExito={cerrar} />
+            <CitaForm key={`${cita.id}-${apertura}`} clientes={clientes} cita={cita} hoy={hoy} alExito={cerrar} />
           ) : null}
         </SheetContent>
       </Sheet>

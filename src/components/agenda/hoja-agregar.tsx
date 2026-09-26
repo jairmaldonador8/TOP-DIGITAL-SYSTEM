@@ -93,7 +93,7 @@ export function HojaAgregar({
           ))}
         </div>
         <div role="tabpanel" id={`panel-${pestana}`} aria-labelledby={`pestana-${pestana}`}>
-          {pestana === 'cita' && <CitaForm key={`c${epoca}`} clientes={datos.clientes} alExito={cerrar} />}
+          {pestana === 'cita' && <CitaForm key={`c${epoca}`} clientes={datos.clientes} hoy={datos.hoy} alExito={cerrar} />}
           {pestana === 'pendiente' && <PendienteForm key={`p${epoca}`} clientes={datos.clientes} hoy={datos.hoy} alExito={cerrar} />}
           {pestana === 'encargo' && (
             <FormularioEncargo

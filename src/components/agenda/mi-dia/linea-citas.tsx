@@ -111,7 +111,7 @@ export function LineaCitas({ citas, datos }: { citas: CitaDia[]; datos: DatosHoj
             <SheetDescription className="sr-only">Cambia los datos de la cita o elimínala</SheetDescription>
           </SheetHeader>
           {cita ? (
-            <CitaForm key={`${cita.id}-${apertura}`} clientes={datos.clientes} cita={cita} alExito={cerrar} />
+            <CitaForm key={`${cita.id}-${apertura}`} clientes={datos.clientes} cita={cita} hoy={datos.hoy} alExito={cerrar} />
           ) : null}
         </SheetContent>
       </Sheet>

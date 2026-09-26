@@ -7,6 +7,20 @@ import { cn } from '@/lib/utils'
 
 const INICIALES = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
 
+/** Fecha completa en minúsculas para el aria-label de cada día, p. ej.
+ * "sábado 26 de septiembre" (patrón #418: mediodía UTC). */
+const fechaAria = new Intl.DateTimeFormat('es-MX', {
+  timeZone: 'America/Mexico_City',
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+})
+
+function textoConteo(cantidad: number): string {
+  if (cantidad === 0) return 'sin elementos'
+  return `${cantidad} ${cantidad === 1 ? 'elemento' : 'elementos'}`
+}
+
 /** Suma días a un 'YYYY-MM-DD' anclado a mediodía UTC (sin saltos de zona). */
 export function sumarDias(fecha: string, dias: number): string {
   const d = new Date(`${fecha}T12:00:00Z`)
@@ -28,13 +42,13 @@ export function lunesDe(fecha: string): string {
 export function FranjaSemana({
   seleccionado,
   hoy,
-  conElementos,
+  elementosPorDia,
   alElegir,
   alMoverSemana,
 }: {
   seleccionado: string
   hoy: string
-  conElementos: (fecha: string) => boolean
+  elementosPorDia: (fecha: string) => number
   alElegir: (fecha: string) => void
   alMoverSemana: (semanas: 1 | -1) => void
 }) {
@@ -62,6 +76,7 @@ export function FranjaSemana({
         {semana.map(({ inicial, fecha }) => {
           const activo = fecha === seleccionado
           const esHoy = fecha === hoy
+          const cantidad = elementosPorDia(fecha)
           return (
             <li key={fecha} className="flex flex-col items-center gap-1">
               <span className="text-[11px] font-semibold text-muted-foreground">{inicial}</span>
@@ -69,7 +84,7 @@ export function FranjaSemana({
                 type="button"
                 onClick={() => alElegir(fecha)}
                 aria-pressed={activo}
-                aria-label={formatoFechaCorta(fecha)}
+                aria-label={`${fechaAria.format(new Date(`${fecha}T12:00:00Z`))}: ${textoConteo(cantidad)}`}
                 className={cn(
                   'relative flex size-11 items-center justify-center rounded-2xl text-sm font-semibold tabular-nums transition-colors',
                   activo
@@ -79,7 +94,7 @@ export function FranjaSemana({
                 )}
               >
                 {Number(fecha.slice(8))}
-                {conElementos(fecha) ? (
+                {cantidad > 0 ? (
                   <span
                     aria-hidden
                     className={cn(
