@@ -17,7 +17,7 @@ export function leerCuota(
   const errores: Record<string, string> = {}
   for (const tipo of TIPOS_ENTREGABLE) {
     const crudo = String(fd.get(`cuota_${tipo}`) ?? '').trim()
-    if (crudo === '' || crudo === '0') continue
+    if (crudo === '' || Number(crudo) === 0) continue
     const n = Number(crudo)
     if (!cantidadValida(n)) {
       errores[`cuota_${tipo}`] = 'Un número entero entre 0 y 50'

@@ -16,6 +16,13 @@
 
 ---
 
+## Correcciones tras la revisión del plan
+
+- Los archivos `supabase/migrations/0024`–`0026` ya escritos **mandan** sobre el SQL de este plan. Incluyen: RLS activada al crear cada tabla en 0025; trigger de INSERT en vez de `CHECK NOT VALID`; `grant update (asignado_a)` en leads; la política de update del equipo ampliada, con la máquina de estados del trabajador movida al trigger (impide saltarse `esperando`); paso libre para la acción `ON DELETE SET NULL` de `depende_de` y para la secret key; restauración de `app.via_rpc`; seguimientos y `asignado_a` limitados a la agencia; ficha del equipo compatible con los encargos actuales.
+- Task 10: `reportes_semanales` no tiene `cliente_id` (solo se respalda); faltan `tareas` y `actividades` en el borrado; paginar los respaldos con `.range()`, lanzar error en cualquier `error` y revisar cada `deleteUser`.
+- Task 11: cada error esperado va en un bloque `DO … EXCEPTION`; probar `depende_de` con una pieza `en_progreso`; incluir admin, la fila del vendedor en `cliente_equipo` de la agencia y un prospecto asignado.
+- Producción comparte base: después de aplicar 0025, `crearTrabajador` en `main` falla con puestos en texto libre hasta publicar la Task 9. Publicar `fase-1` → `main` justo al terminar la Task 9.
+
 ## Mapa de archivos
 
 | Archivo | Responsabilidad |
