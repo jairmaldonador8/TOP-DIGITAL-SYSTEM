@@ -177,7 +177,8 @@ Estas reglas mandan sobre cualquier frase anterior que las contradiga.
 - Cliente nuevo: el plazo del editor es 2 días hábiles contados desde la aprobación de la producción.
 
 **Archivos**
-- El bucket `evidencias` sube a 50 MB por archivo (el máximo del plan gratis) y acepta además `video/quicktime`, `image/heic` e `image/webp`. Al pasar a Supabase Pro se sube a 500 MB. Lo más pesado va por `enlace_externo`.
+- El bucket `evidencias` sube a 50 MB por archivo (el máximo del plan gratis; además el plan gratis solo da 1 GB en total) y acepta además `video/quicktime`, `image/heic` e `image/webp`. **El material crudo del filmmaker va por `enlace_externo` (Drive), obligatorio en las piezas `produccion`**; también cualquier video de más de 50 MB. Al pasar a Supabase Pro se sube el límite y la subida de video pasa a TUS (fuera de este plan).
+- La revisión y el desbloqueo encienden `set_config('app.via_rpc','on', true)` y el trigger de congelado deja pasar los cambios cuando esa bandera está encendida (ver brief de investigación).
 - `cliente_archivos`: RLS admin todo; lectura para quien tenga `cliente_asignado`. Los buckets `marca` y `perfiles` siguen el patrón de 0020: sin políticas de storage, URLs firmadas emitidas en el servidor tras validar contra la tabla.
 
 **Fichas y vendedor**
