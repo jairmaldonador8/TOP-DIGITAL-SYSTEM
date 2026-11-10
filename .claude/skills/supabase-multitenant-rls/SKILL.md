@@ -1,6 +1,6 @@
 ---
 name: supabase-multitenant-rls
-description: Use when writing database migrations, RLS policies, or queries touching tenant data in this project — covers cliente_id isolation, admin bypass, sensitive-column separation, and RLS testing.
+description: Use when writing database migrations, RLS policies, or queries touching tenant data in this project — covers cliente_id isolation, admin bypass, staff access by puesto and client assignment, definer RPCs that must pass the encargos freeze trigger, new enum values, sensitive-column separation, and RLS testing.
 ---
 
 # Multi-tenant RLS (Supabase)
@@ -49,6 +49,34 @@ create policy "solo admin" on public.campania_finanzas for all to authenticated
 **Freeze ownership fields** on shared tables: `revoke update on public.leads from authenticated; grant update (etapa, notas, ...) on public.leads to authenticated;` (never grant update on `cliente_id`).
 
 **Admin access**: permissive `is_admin()` policies through the normal client. Secret key (`sb_secret_...`) only server-side for jobs and user provisioning (it bypasses RLS entirely; naming service_role in a policy does nothing).
+
+**Team by job role (puesto)** — staff share rol `equipo`; what they see comes from `usuarios.puesto` + the `cliente_equipo (cliente_id, user_id, puesto)` assignment table. Helpers, wrapped in `(select ...)` like the others:
+```sql
+create or replace function private.puesto_actual()
+returns public.puesto_equipo language sql security definer stable set search_path = '' as $$
+  select puesto from public.usuarios where user_id = (select auth.uid());
+$$;
+create or replace function private.cliente_asignado(p_cliente uuid)
+returns boolean language sql security definer stable set search_path = '' as $$
+  select exists (select 1 from public.cliente_equipo
+    where cliente_id = p_cliente and user_id = (select auth.uid()));
+$$;
+```
+Staff never select `clientes` directly (it holds budget/billing columns): they read a definer RPC that returns only safe columns for `cliente_asignado(id)` clients.
+
+**Definer RPC vs a JWT-based freeze trigger** — `private.is_admin()` reads the JWT, so inside a definer RPC a PM is still "not admin" and `encargos_congelar_columnas` blocks the update. The RPC raises a transaction-local flag that the trigger honors:
+```sql
+-- in the RPC (after its own permission checks)
+perform set_config('app.via_rpc', 'on', true);  -- true = local to this transaction
+update public.encargos set estado = 'aprobado', aprobado_en = now() where id = p_id;
+-- in the trigger
+if (select private.is_admin()) or current_setting('app.via_rpc', true) = 'on' then
+  return new;
+end if;
+```
+Clients can't set it: PostgREST only exposes functions in exposed schemas and runs no arbitrary SQL. Every function that sets the flag must do its own authorization first.
+
+**New enum values** — `alter type ... add value` (with or without `before`) can't be used in the same transaction (`55P04`), and each migration file is one transaction. Put the `add value` / `create type` in its own migration; use them from the next file.
 
 ## Migrations & Testing
 - RLS policies and grants go in versioned `supabase/migrations/` — declarative schema diff does NOT capture grants/alter policy.
