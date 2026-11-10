@@ -18,6 +18,12 @@ import {
   EstadoClienteBadge,
   type EstadoCliente,
 } from '@/components/clientes/estado-badge'
+import {
+  FichaEquipo,
+  FichaKit,
+  FichaOperacion,
+  type IntegranteOpcion,
+} from '@/components/clientes/ficha-cliente'
 import { UsuarioFormDialog } from '@/components/clientes/usuario-form'
 import {
   EtapaBadge,
@@ -42,6 +48,9 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import type { KitMarca } from '@/lib/clientes/ficha'
+import type { Cuota } from '@/lib/entregables/ciclo'
+import { esPuesto, type Puesto } from '@/lib/equipo/puestos'
 import { formatoFechaCorta, formatoMoneda } from '@/lib/formato'
 import { createClient } from '@/lib/supabase/server'
 
@@ -54,6 +63,12 @@ type Cliente = ClienteEditable & {
   es_agencia: boolean
   meta_ad_account_id: string | null
   created_at: string
+  fecha_arranque: string | null
+  dia_cobro: number | null
+  paquete: string | null
+  cuota: Cuota | null
+  kit_marca: Partial<KitMarca> | null
+  produccion_requiere_revision: boolean
 }
 
 type FilaUsuario = {
@@ -103,7 +118,7 @@ export default async function PaginaCliente({
   const { data, error: errorCliente } = await supabase
     .from('clientes')
     .select(
-      'id, nombre_negocio, contacto_nombre, email, telefono, presupuesto_ads, meta_facturacion, estado, es_agencia, meta_ad_account_id, notas, giro, descripcion_publica, created_at'
+      'id, nombre_negocio, contacto_nombre, email, telefono, presupuesto_ads, meta_facturacion, estado, es_agencia, meta_ad_account_id, notas, giro, descripcion_publica, created_at, fecha_arranque, dia_cobro, paquete, cuota, kit_marca, produccion_requiere_revision'
     )
     .eq('id', id)
     .maybeSingle()
@@ -117,7 +132,7 @@ export default async function PaginaCliente({
   // La agencia misma no se administra como cliente.
   if (!cliente || cliente.es_agencia) notFound()
 
-  const [usuariosRes, leadsRes, campaniasRes, finanzasRes] = await Promise.all([
+  const [usuariosRes, leadsRes, campaniasRes, finanzasRes, equipoRes, integrantesRes] = await Promise.all([
     supabase
       .from('usuarios')
       .select('id, nombre, rol, created_at')
@@ -142,7 +157,24 @@ export default async function PaginaCliente({
       .from('campania_finanzas')
       .select('campania_id, gasto')
       .eq('cliente_id', cliente.id),
+    supabase
+      .from('cliente_equipo')
+      .select('puesto, user_id')
+      .eq('cliente_id', cliente.id),
+    supabase
+      .from('usuarios')
+      .select('user_id, nombre, puesto')
+      .eq('rol', 'equipo')
+      .order('nombre'),
   ])
+
+  const asignados: Partial<Record<Puesto, string>> = {}
+  for (const fila of (equipoRes.data ?? []) as { puesto: string; user_id: string }[]) {
+    if (esPuesto(fila.puesto)) asignados[fila.puesto] = fila.user_id
+  }
+  const integrantes: IntegranteOpcion[] = (
+    (integrantesRes.data ?? []) as { user_id: string; nombre: string; puesto: string | null }[]
+  ).flatMap((i) => (esPuesto(i.puesto) ? [{ userId: i.user_id, nombre: i.nombre, puesto: i.puesto }] : []))
 
   const errorUsuarios = usuariosRes.error
   if (errorUsuarios) {
@@ -236,8 +268,11 @@ export default async function PaginaCliente({
       </header>
 
       <Tabs defaultValue="resumen" className="gap-4">
-        <TabsList>
+        <TabsList className="max-w-full justify-start overflow-x-auto">
           <TabsTrigger value="resumen">Resumen</TabsTrigger>
+          <TabsTrigger value="operacion">Operación</TabsTrigger>
+          <TabsTrigger value="equipo">Equipo</TabsTrigger>
+          <TabsTrigger value="kit">Kit de marca</TabsTrigger>
           <TabsTrigger value="usuarios">Usuarios</TabsTrigger>
           <TabsTrigger value="leads">
             Leads{listaLeads.length > 0 ? ` · ${listaLeads.length}` : ''}
@@ -431,6 +466,27 @@ export default async function PaginaCliente({
               <PanelCampanias campanias={listaCampanias} conFiltro={false} />
             </>
           )}
+        </TabsContent>
+
+        <TabsContent value="operacion">
+          <FichaOperacion
+            clienteId={cliente.id}
+            operacion={{
+              fecha_arranque: cliente.fecha_arranque,
+              dia_cobro: cliente.dia_cobro,
+              paquete: cliente.paquete,
+              cuota: cliente.cuota ?? {},
+              produccion_requiere_revision: cliente.produccion_requiere_revision ?? true,
+            }}
+          />
+        </TabsContent>
+
+        <TabsContent value="equipo">
+          <FichaEquipo clienteId={cliente.id} asignados={asignados} integrantes={integrantes} />
+        </TabsContent>
+
+        <TabsContent value="kit">
+          <FichaKit clienteId={cliente.id} kit={cliente.kit_marca ?? {}} />
         </TabsContent>
       </Tabs>
     </div>
