@@ -13,9 +13,12 @@ update public.usuarios set puesto_nuevo = (case
     when lower(puesto) like '%media%' then 'media_buyer'
     when lower(puesto) like '%vend%' then 'vendedor'
     else null
-  end)::public.puesto_equipo;
+  end)::public.puesto_equipo
+where puesto is not null;
 
-alter table public.usuarios drop column puesto;
+-- La columna de texto se conserva como referencia (no se borra datos).
+alter table public.usuarios rename column puesto to puesto_texto;
+comment on column public.usuarios.puesto_texto is 'OBSOLETA: puesto en texto libre previo a 0025. No usar.';
 alter table public.usuarios rename column puesto_nuevo to puesto;
 comment on column public.usuarios.puesto is 'Puesto del integrante (rol equipo). Decide su bandeja y permisos.';
 
