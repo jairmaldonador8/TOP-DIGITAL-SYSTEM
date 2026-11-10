@@ -45,6 +45,7 @@ export type EncargoView = {
 }
 
 const ETIQUETA_ESTADO: Record<EstadoEncargo, string> = {
+  esperando: 'Esperando material',
   pendiente: 'Pendiente',
   en_progreso: 'En progreso',
   entregado: 'En revisión',

@@ -6,6 +6,7 @@
  */
 
 export const ESTADOS_ENCARGO = [
+  'esperando',
   'pendiente',
   'en_progreso',
   'entregado',
