@@ -22,6 +22,7 @@ import {
   type FilaAdjunto,
 } from '@/lib/equipo/evidencia-server'
 import type { EstadoEncargo } from '@/lib/equipo/transiciones'
+import { ETIQUETA_PUESTO, esPuesto } from '@/lib/equipo/puestos'
 import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = {
@@ -96,7 +97,7 @@ export default async function PaginaEquipoAgencia() {
   const trabajadores: TrabajadorOpcion[] = integrantes.map((i) => ({
     userId: i.user_id,
     nombre: i.nombre ?? 'Integrante',
-    puesto: i.puesto ?? '—',
+    puesto: etiquetaPuesto(i.puesto),
   }))
 
   // Hilos de chat agrupados por trabajador, en orden cronológico.
@@ -182,7 +183,7 @@ export default async function PaginaEquipoAgencia() {
                 key={integrante.user_id}
                 userId={integrante.user_id}
                 nombre={integrante.nombre ?? 'Integrante'}
-                puesto={integrante.puesto ?? '—'}
+                puesto={etiquetaPuesto(integrante.puesto)}
                 activos={
                   suyos.filter(
                     (e) =>
@@ -219,4 +220,8 @@ export default async function PaginaEquipoAgencia() {
       )}
     </div>
   )
+}
+
+function etiquetaPuesto(puesto: string | null): string {
+  return esPuesto(puesto) ? ETIQUETA_PUESTO[puesto] : 'Falta puesto'
 }

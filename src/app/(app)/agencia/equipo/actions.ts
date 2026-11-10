@@ -20,6 +20,7 @@ import {
   type PreparacionSubida,
   type ResultadoEvidencia,
 } from '@/lib/equipo/evidencia-server'
+import { ETIQUETA_PUESTO, esPuesto } from '@/lib/equipo/puestos'
 import {
   PRIORIDADES_ENCARGO,
   puedeTransicionar,
@@ -49,7 +50,7 @@ export async function crearTrabajador(
 ): Promise<ResultadoAccion> {
   if (!(await esAdmin())) return NO_AUTORIZADO
 
-  const valores = valoresDe(formData, ['nombre', 'puesto', 'email'])
+  const valores = valoresDe(formData, ['nombre', 'puesto', 'email', 'bio', 'especialidades'])
   const resultado = validarUsuarioCliente({
     nombre: formData.get('nombre'),
     email: formData.get('email'),
@@ -57,8 +58,10 @@ export async function crearTrabajador(
   })
   const puesto = ((formData.get('puesto') as string) ?? '').trim()
   const errores = resultado.ok ? {} : { ...resultado.errores }
-  if (!puesto) errores.puesto = 'Indica el puesto (Diseño, Video...)'
-  if (!resultado.ok || Object.keys(errores).length > 0) {
+  if (!esPuesto(puesto)) errores.puesto = 'Elige un puesto'
+  const perfil = leerPerfil(formData)
+  if (perfil.error) errores.bio = perfil.error
+  if (!resultado.ok || !esPuesto(puesto) || Object.keys(errores).length > 0) {
     return { ok: false, errores, valores }
   }
 
@@ -92,6 +95,8 @@ export async function crearTrabajador(
     rol: 'equipo',
     nombre: resultado.datos.nombre,
     puesto,
+    bio: perfil.bio,
+    especialidades: perfil.especialidades,
   })
 
   if (errorFila) {
@@ -115,7 +120,7 @@ export async function crearTrabajador(
   // Bienvenida con sus accesos (best-effort, no bloquea el alta).
   const correo = emailBienvenida({
     nombre: resultado.datos.nombre,
-    puesto,
+    puesto: ETIQUETA_PUESTO[puesto],
     email: resultado.datos.email,
     password: resultado.datos.password,
   })
@@ -123,6 +128,77 @@ export async function crearTrabajador(
 
   revalidarEquipo()
   return { ok: true, email: resultado.datos.email }
+}
+
+/** Bio (máx. 280) y especialidades separadas por coma. */
+function leerPerfil(fd: FormData): {
+  bio: string | null
+  especialidades: string[]
+  error?: string
+} {
+  const bio = String(fd.get('bio') ?? '').trim()
+  const especialidades = String(fd.get('especialidades') ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 8)
+  return {
+    bio: bio || null,
+    especialidades,
+    error: bio.length > 280 ? 'Máximo 280 caracteres' : undefined,
+  }
+}
+
+/**
+ * Edita puesto y perfil de un integrante. Si cambia de puesto, sus
+ * asignaciones con el puesto anterior se quitan (el trigger de
+ * cliente_equipo exige que coincidan).
+ */
+export async function editarPerfilTrabajador(
+  userId: string,
+  _prev: ResultadoAccion,
+  formData: FormData
+): Promise<ResultadoAccion> {
+  if (!(await esAdmin()) || !esUuid(userId)) return NO_AUTORIZADO
+  const valores = valoresDe(formData, ['puesto', 'bio', 'especialidades'])
+  const puesto = (valores.puesto ?? '').trim()
+  const perfil = leerPerfil(formData)
+  const errores: Record<string, string> = {}
+  if (!esPuesto(puesto)) errores.puesto = 'Elige un puesto'
+  if (perfil.error) errores.bio = perfil.error
+  if (!esPuesto(puesto) || Object.keys(errores).length) return { ok: false, errores, valores }
+
+  const supabase = await createClient()
+  const { data: actual } = await supabase
+    .from('usuarios')
+    .select('puesto')
+    .eq('user_id', userId)
+    .eq('rol', 'equipo')
+    .maybeSingle()
+  if (!actual) return NO_AUTORIZADO
+
+  if (actual.puesto && actual.puesto !== puesto) {
+    const { error } = await supabase
+      .from('cliente_equipo')
+      .delete()
+      .eq('user_id', userId)
+      .eq('puesto', actual.puesto)
+    if (error) {
+      console.error('editarPerfilTrabajador (asignaciones):', error)
+      return { ok: false, errores: { _form: 'No se pudo cambiar el puesto' }, valores }
+    }
+  }
+
+  const { error } = await supabase
+    .from('usuarios')
+    .update({ puesto, bio: perfil.bio, especialidades: perfil.especialidades })
+    .eq('user_id', userId)
+  if (error) {
+    console.error('editarPerfilTrabajador:', error)
+    return { ok: false, errores: { _form: 'No se pudo guardar' }, valores }
+  }
+  revalidarEquipo()
+  return { ok: true }
 }
 
 /** Crea un encargo para un integrante del equipo. */

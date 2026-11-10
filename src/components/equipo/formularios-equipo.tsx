@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import type { ResultadoAccion } from '@/lib/acciones'
+import { ETIQUETA_PUESTO, PUESTOS } from '@/lib/equipo/puestos'
 
 export type TrabajadorOpcion = { userId: string; nombre: string; puesto: string }
 export type ClienteOpcionEquipo = { id: string; nombre_negocio: string }
@@ -382,16 +383,19 @@ function FormularioTrabajador({
           required
         />
       </Campo>
-      <Campo id="puesto" etiqueta="Puesto" error={errores.puesto}>
-        <Input
-          id="puesto"
-          name="puesto"
-          placeholder="Diseño gráfico"
-          defaultValue={valores.puesto ?? ''}
-          aria-invalid={errores.puesto ? true : undefined}
-          aria-describedby={describedBy('puesto', errores.puesto)}
-          required
+      <CampoPuesto error={errores.puesto} valor={valores.puesto} />
+      <Campo id="bio" etiqueta="Bio profesional" descripcion="Opcional · máx. 280 caracteres" error={errores.bio}>
+        <Textarea
+          id="bio"
+          name="bio"
+          rows={2}
+          maxLength={280}
+          defaultValue={valores.bio ?? ''}
+          aria-describedby={describedBy('bio', errores.bio)}
         />
+      </Campo>
+      <Campo id="especialidades" etiqueta="Especialidades" descripcion="Opcional · separadas por coma">
+        <Input id="especialidades" name="especialidades" placeholder="Reels, motion, color" defaultValue={valores.especialidades ?? ''} />
       </Campo>
       <Campo id="email" etiqueta="Correo" error={errores.email}>
         <Input
@@ -435,5 +439,31 @@ function FormularioTrabajador({
         </Button>
       </DialogFooter>
     </form>
+  )
+}
+
+/** Select de puesto (catálogo fijo). Se reutiliza en alta y edición de perfil. */
+export function CampoPuesto({ error, valor }: { error?: string; valor?: string | null }) {
+  const items = PUESTOS.map((p) => ({ value: p, label: ETIQUETA_PUESTO[p] }))
+  return (
+    <Campo id="puesto" etiqueta="Puesto" error={error}>
+      <Select name="puesto" defaultValue={valor ?? null} items={items}>
+        <SelectTrigger
+          id="puesto"
+          className="h-11 w-full"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={describedBy('puesto', error)}
+        >
+          <SelectValue placeholder="¿Qué hace en el equipo?" />
+        </SelectTrigger>
+        <SelectContent>
+          {items.map((it) => (
+            <SelectItem key={it.value} value={it.value}>
+              {it.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </Campo>
   )
 }
